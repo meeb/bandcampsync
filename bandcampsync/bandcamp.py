@@ -5,6 +5,7 @@ from html import unescape as html_unescape
 from urllib.parse import urlsplit, urlunsplit
 from bs4 import BeautifulSoup
 import requests
+from .config import USER_AGENT
 from .logger import get_logger
 
 
@@ -17,7 +18,6 @@ class BandcampError(ValueError):
 
 class Bandcamp:
 
-    USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/116.0'
     BASE_PROTO = 'https'
     BASE_DOMAIN = 'bandcamp.com'
     URLS = {
@@ -38,6 +38,7 @@ class Bandcamp:
             self.cookies.load(cookies)
         except Exception as e:
             raise BandcampError(f'Failed to parse cookies string: {e}') from e
+        print(cookies)
         session = self.cookies.get('session')
         if not session:
             raise BandcampError(f'Cookie data does not contain a session value, make sure your '
@@ -45,6 +46,10 @@ class Bandcamp:
                                 f'authenticated browser')
         session_snip = session.value[:20]
         log.info(f'Located Bandcamp session in cookies: {session_snip}...')
+
+    @property
+    def cookies_str(self):
+        return self.cookies.output(header='').strip().replace('\r\n', ';')
 
     def _construct_url(self, url_name):
         if url_name not in self.URLS:
@@ -58,7 +63,7 @@ class Bandcamp:
         return cookies
 
     def _request(self, method, url, data={}, json_data={}, is_json=False):
-        headers = {'User-Agent': self.USER_AGENT}
+        headers = {'User-Agent': USER_AGENT}
         try:
             log.debug(f'Making {method} request to {url}')
             response = requests.request(
@@ -74,6 +79,13 @@ class Bandcamp:
         if response.status_code != 200:
             raise BandcampError(f'Failed to make HTTP request to {url}: '
                                 f'unknown status code response: {response.status_code}')
+        try:
+            # If there are updated cookies returned from in the response header update our
+            # local cookie jar
+            set_cookie = response.headers['set-cookie']
+            self.cookies.load(set_cookie)
+        except Exception:
+            pass
         if is_json:
             return json.loads(response.text)
         else:
@@ -162,10 +174,11 @@ class Bandcamp:
             except KeyError as e:
                 raise BandcampError(f'Failed to extract redownload_urls from collection results page')
             for item in items:
+                item_id = item['item_id']
                 band_name = item['band_name']
                 title = item['item_title']
                 token = item['token']
-                log.info(f'Found item: {band_name} / {title}')
+                log.info(f'Found item: {band_name} / {title} (id:{item_id})')
                 download_url_type = item['sale_item_type']
                 download_url_id = item['sale_item_id']
                 download_url_key = f'{download_url_type}{download_url_id}'
