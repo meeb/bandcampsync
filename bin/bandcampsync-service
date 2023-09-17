@@ -1,0 +1,69 @@
+#!/usr/bin/env python
+
+
+import os
+import signal
+from time import sleep
+from random import randrange
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+from pathlib import Path
+from bandcampsync import version, logger, do_sync
+
+
+log = logger.get_logger('service')
+
+
+class CatchShutdownSignal:
+
+    def __init__(self):
+        self.shutdown = False
+        signal.signal(signal.SIGINT, self.got_exit_signal)
+        signal.signal(signal.SIGTERM, self.got_exit_signal)
+    
+    def got_exit_signal(self):
+        self.shutdown = True
+
+
+if __name__ == '__main__':
+    tz_name = os.getenv('TZ', 'UTC')
+    cookies_path_env = os.getenv('COOKIES_FILE', 'cookies.txt')
+    dir_path_env = os.getenv('DIRECTORY', '/downloads')
+    media_format_env = os.getenv('FORMAT', 'flac')
+    run_daily_at_env = os.getenv('RUN_DAILY_AT', '3')
+    cookies_path = Path(cookies_path_env).resolve()
+    dir_path = Path(dir_path_env).resolve()
+    if not cookies_path.is_file():
+        raise ValueError(f'Cookies file does not exist: {cookies_path}')
+    if not dir_path.is_dir():
+        raise ValueError(f'Directory does not exist: {dir_path}')
+    log.info(f'BandcampSync v{version} starting')
+    with open(cookies_path, 'rt') as f:
+        cookies = f.read().strip()
+    log.info(f'Loaded cookies from "{cookies_path}"')
+    try:
+        tz = ZoneInfo(tz_name)
+    except Exception as e:
+        raise ValueError(f'Not a valid timezone name: {tz_name}') from e
+    try:
+        run_daily_at = int(run_daily_at_env)
+    except TypeError as e:
+        raise ValueError(f'Invalid RUN_DAILY_AT, got: {run_daily_at}') from e
+    if not 0 <= run_daily_at <= 23:
+        raise ValueError(f'Invalid RUN_DAILY_AT, must be between 0 and 23, got: {run_daily_at}')
+    time_now = datetime.now(tz).replace(microsecond=0)
+    log.info(f'Time now in {tz}: {time_now}')
+    log.info(f'Running an initial one-off synchronisation immediately')
+    catch_shutdown = CatchShutdownSignal()
+    while not catch_shutdown.shutdown:
+        log.info(f'Starting synchronisation')
+        do_sync(cookies, dir_path, media_format_env)
+        random_delay = randrange(0, 3600)
+        time_now = datetime.now(tz).replace(microsecond=0)
+        time_tomorrow = time_now + timedelta(days=1)
+        time_tomorrow = time_tomorrow.replace(hour=run_daily_at, minute=0, second=0, microsecond=0)
+        next_sleep = int((time_tomorrow - time_now).total_seconds() + random_delay)
+        log.info(f'Scheduling next run for {time_tomorrow} + {random_delay} second random offset')
+        log.info(f'Sleeping for {next_sleep} seconds')
+        sleep(next_sleep)
+    log.info(f'Done')

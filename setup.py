@@ -27,7 +27,10 @@ setup(
     include_package_data = True,
     install_requires = requirements,
     packages = find_packages(),
-    scripts = ['bin/bandcampsync'],
+    scripts = [
+        'bin/bandcampsync',
+        'bin/bandcampsync-service',
+    ],
     classifiers = [
         'Development Status :: 5 - Production/Stable',
         'License :: OSI Approved :: BSD License',
