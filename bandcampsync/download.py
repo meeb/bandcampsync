@@ -19,7 +19,11 @@ def mask_sig(url):
     return '&'.join(url_parts)
 
 
-def download_file(url, target, mode='wb', chunk_size=8192, logevery=10):
+class InvalidContentType(Exception):
+    pass
+
+
+def download_file(url, target, mode='wb', chunk_size=8192, logevery=10, disallow_content_type='text/html'):
     text = True if 't' in mode else False
     data_streamed = 0
     last_log = 0
@@ -27,8 +31,15 @@ def download_file(url, target, mode='wb', chunk_size=8192, logevery=10):
     with requests.get(url, stream=True, headers=headers) as r:
         r.raise_for_status()
         try:
+            content_type = r.headers.get('Content-Type', '')
+        except (ValueError, KeyError):
+            content_type = ''
+        content_type_parts = content_type.split(';')
+        if content_type_parts[0].strip() == disallow_content_type:
+            raise InvalidContentType(f'Unexpected content type: {content_type}')
+        try:
             content_length = int(r.headers.get('Content-Length', '0'))
-        except ValueError:
+        except (ValueError, KeyError):
             content_length = 0
         for chunk in r.iter_content(chunk_size=chunk_size):
             data_streamed += len(chunk)
@@ -46,9 +57,9 @@ def download_file(url, target, mode='wb', chunk_size=8192, logevery=10):
 def is_zip_file(file_path):
     try:
         with ZipFile(file_path) as z:
-            z.getinfo()
+            z.infolist()
         return True
-    except Exception:
+    except Exception as e:
         return False
 
 
@@ -60,3 +71,7 @@ def unzip_file(decompress_from, decompress_to):
 
 def move_file(src, dst):
     return shutil.move(src, dst)
+
+
+def copy_file(src, dst):
+    return shutil.copyfile(src, dst)

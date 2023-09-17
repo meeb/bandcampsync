@@ -38,5 +38,5 @@ if __name__ == '__main__':
     with open(cookies_path, 'rt') as f:
         cookies = f.read().strip()
     log.info(f'Loaded cookies from "{cookies_path}"')
-    do_sync(cookies, dir_path, media_format)
+    do_sync(cookies_path, cookies, dir_path, media_format)
     log.info(f'Done')
