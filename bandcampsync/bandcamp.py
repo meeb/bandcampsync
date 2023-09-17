@@ -38,7 +38,6 @@ class Bandcamp:
             self.cookies.load(cookies)
         except Exception as e:
             raise BandcampError(f'Failed to parse cookies string: {e}') from e
-        print(cookies)
         session = self.cookies.get('session')
         if not session:
             raise BandcampError(f'Cookie data does not contain a session value, make sure your '
@@ -50,6 +49,11 @@ class Bandcamp:
     @property
     def cookies_str(self):
         return self.cookies.output(header='').strip().replace('\r\n', ';')
+
+    def refresh_cookes(self, file_path):
+        log.info(f'Refreshing cookies: {file_path}')
+        with open(file_path, 'wt') as f:
+            f.write(self.cookies_str)
 
     def _construct_url(self, url_name):
         if url_name not in self.URLS:

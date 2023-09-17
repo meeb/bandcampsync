@@ -6,7 +6,7 @@ log = get_logger('media')
 
 class LocalMedia:
     """
-        A local media directory. This stores media in the following format:
+        A local media directory indexer. This stores media in the following format:
 
             /media_dir/
             /media_dir/Artist Name
