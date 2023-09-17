@@ -7,5 +7,5 @@ groupmod -o -g "$PGID" app
 usermod -o -u "$PUID" app
 echo "Set service UID:GID to ${PUID}:${PGID}"
 
-# Execute whatever is set in CMD
-exec "$@"
+# Execute whatever is set in CMD as the 'app' user
+exec gosu app "$@"

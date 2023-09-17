@@ -17,6 +17,7 @@ RUN set -x && \
   # Install required distro packages
   apt-get -y --no-install-recommends install \
     git \
+    gosu \
     python3 \
     python3-dev \
     python3-pip && \
@@ -30,8 +31,10 @@ RUN set -x && \
   rm -rf /var/cache/apt/* && \
   rm -rf /tmp/
 
-# Install BandcampSync
 RUN set -x && \
+  # Allow root to use sudo
+  echo "root  ALL = NOPASSWD: /bin/su ALL" >> /etc/sudoers && \
+  # Install BandcampSync
   python3 -m pip install --break-system-packages git+https://github.com/meeb/bandcampsync.git@v0.1.0#egg=bandcampsync
 
 # Volumes
@@ -40,9 +43,6 @@ VOLUME ["/config", "/downloads"]
 # Set the 'app' user UID and GID in the entrypoint
 COPY entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
-
-# Drop to the 'app' user
-USER app
 
 # Run the service
 CMD ["bandcampsync-service"]
