@@ -39,8 +39,9 @@ def do_sync(cookies_path, cookies, dir_path, media_format):
                          f'from {mask_sig(download_url)} to {temp_file.name}')
                 try:
                     download_file(download_url, temp_file)
-                except InvalidContentType:
-                    log.error(f'Download URL unexpectedly returned an invalid content type, skipping download')
+                except InvalidContentType as e:
+                    log.error(f'Download URL unexpectedly returned an invalid content type, '
+                              f'skipping download: {e}')
                     continue
                 temp_file.seek(0)
                 temp_file_path = Path(temp_file.name)
