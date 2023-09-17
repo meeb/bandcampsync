@@ -32,7 +32,7 @@ RUN set -x && \
 
 # Install BandcampSync
 RUN set -x && \
-  python3 -m pip install --break-system-packages git+https://github.com/meeb/bandcampsync.git#egg=bandcampsync
+  python3 -m pip install --break-system-packages git+https://github.com/meeb/bandcampsync.git@v0.1.0#egg=bandcampsync
 
 # Volumes
 VOLUME ["/config", "/downloads"]
