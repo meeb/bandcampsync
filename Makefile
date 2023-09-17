@@ -8,4 +8,4 @@ container:
 
 
 runcontainer:
-	$(docker) run --rm --name $(name) --env-file dev.env -ti $(image)
+	$(docker) run --rm --name $(name) --env-file dev.env -ti -v ./docker-config:/config -v ./docker-downloads:/downloads $(image)

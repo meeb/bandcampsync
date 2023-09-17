@@ -10,13 +10,16 @@ ENV DEBIAN_FRONTEND="noninteractive" \
 # Set up the container
 RUN set -x && \
   apt-get update && \
+  # Set locale
+  apt-get -y --no-install-recommends install locales && \
+  echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
+  locale-gen en_US.UTF-8 && \
   # Install required distro packages
   apt-get -y --no-install-recommends install \
+    git \
     python3 \
     python3-dev \
     python3-pip && \
-  # Install app
-  python -m pip install git+https://github.com/meeb/bandcampsync.git && \
   # Create a 'app' user which the service will run as
   groupadd app && \
   useradd -M -d /app -s /bin/false -g app app && \
@@ -26,6 +29,10 @@ RUN set -x && \
   rm -rf /var/lib/apt/lists/* && \
   rm -rf /var/cache/apt/* && \
   rm -rf /tmp/
+
+# Install BandcampSync
+RUN set -x && \
+  python3 -m pip install --break-system-packages git+https://github.com/meeb/bandcampsync.git#egg=bandcampsync
 
 # Volumes
 VOLUME ["/config", "/downloads"]

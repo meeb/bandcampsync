@@ -160,3 +160,5 @@ cython_debug/
 #.idea/
 
 cookies.txt
+docker-config/
+docker-downloads/

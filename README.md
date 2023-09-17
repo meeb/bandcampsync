@@ -1,8 +1,8 @@
 # BandcampSync
 
-BandcampSync is a Python module and command line script which synchronises
-media purchased on a Bandcamp (http://bandcamp.com/) account with a
-local directory.
+BandcampSync is a Python module and command line script (also packed in
+a Docker container) which synchronises media purchased on a Bandcamp
+(http://bandcamp.com/) account with a local directory.
 
 You may use this to download media you have purchased from Bandcamp to a
 local media server, such as Plex or Jellyfin.
@@ -135,6 +135,8 @@ client_id=00B1F3C8EB48E181A185CCD041E40C0E8F; session=1%0893C88%570EE405455%%8DE
 
 Save this string to a file called `cookies.txt`.
 
+![Getting your session cookues](https://github.com/meeb/bandcampsync/blob/main/docs/cookies.jpg?raw=true)
+
 You need to save your session ID from cookies manually because Bandcamp has
 a captcha on the login form so BandcampSync can't log in with your username
 and password for you.
@@ -158,10 +160,6 @@ or in shorthand:
 ```bash
 $ bandcampsync -c cookies.txt -d /path/to/music
 ```
-
-
-## Docker usage
-
 
 
 ## Formats

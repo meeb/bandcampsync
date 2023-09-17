@@ -27,7 +27,7 @@ class CatchShutdownSignal:
 
 if __name__ == '__main__':
     tz_name = os.getenv('TZ', 'UTC')
-    cookies_path_env = os.getenv('COOKIES_FILE', 'cookies.txt')
+    cookies_path_env = os.getenv('COOKIES_FILE', '/config/cookies.txt')
     dir_path_env = os.getenv('DIRECTORY', '/downloads')
     media_format_env = os.getenv('FORMAT', 'flac')
     run_daily_at_env = os.getenv('RUN_DAILY_AT', '3')
