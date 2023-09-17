@@ -43,6 +43,15 @@ def download_file(url, target, mode='wb', chunk_size=8192, logevery=10):
     return True
 
 
+def is_zip_file(file_path):
+    try:
+        with ZipFile(file_path) as z:
+            z.getinfo()
+        return True
+    except Exception:
+        return False
+
+
 def unzip_file(decompress_from, decompress_to):
     with ZipFile(decompress_from) as z:
         z.extractall(decompress_to)
