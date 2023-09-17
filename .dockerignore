@@ -1,7 +1,2 @@
-.git
-.gitignore
-.github
-.gitattributes
-README.md
-docker-config/
-docker-downloads/
+*
+!entrypoint.sh
