@@ -95,7 +95,32 @@ class Bandcamp:
         else:
             return BeautifulSoup(response.text, 'html.parser')
 
-    def _extract_pagedata(self, soup):
+    def _get_redirect_url(self, url):
+        """
+            Requests (HTTP GET) a URL assuming it will return a redirect (301 or
+            303) and return the URL you are being redirected to.
+        """
+        headers = {'User-Agent': USER_AGENT}
+        try:
+            log.debug(f'Making GET (redirect check) request to {url}')
+            response = requests.get(
+                url,
+                headers=headers,
+                cookies=self._plain_cookies(),
+                allow_redirects=False
+            )
+        except Exception as e:
+            raise BandcampError(f'Failed to make HTTP request to {url}: {e}') from e
+        if response.status_code in (301, 303):
+            try:
+                return response.headers['Location']
+            except KeyError as e:
+                raise BandcampError(f'Redirect URL {url} returned a 301 or 303 but no Location header')
+        else:
+            # Not a redirect
+            return False
+
+    def _extract_pagedata_from_soup(self, soup):
         pagedata_tag = soup.find('div', id='pagedata')
         if not pagedata_tag:
             raise BandcampError(f'Failed to locate <div id="pagedata"> in index HTML, this may '
@@ -111,6 +136,13 @@ class Bandcamp:
         except Exception as e:
             raise BandcampError(f'Failed to parse pagedata as JSON: {e}') from e
 
+    def _extract_pagedata_from_html(self, html):
+        """
+            Wrapper for _extract_pagedata_from_soup() that can accept HTML rather than a bs4 soup.
+        """
+        soup = BeautifulSoup(html, 'html.parser')
+        return self._extract_pagedata_from_soup(soup)
+
     def verify_authentication(self):
         """
             Loads the initial account and session data from a request to the index page
@@ -119,7 +151,7 @@ class Bandcamp:
         """
         url = self._construct_url('index')
         soup = self._request('get', url)
-        pagedata = self._extract_pagedata(soup)
+        pagedata = self._extract_pagedata_from_soup(soup)
         try:
             identities = pagedata['identities']
         except KeyError as e:
@@ -177,43 +209,33 @@ class Bandcamp:
                 redownload_urls = data['redownload_urls']
             except KeyError as e:
                 raise BandcampError(f'Failed to extract redownload_urls from collection results page')
-            for item in items:
-                item_id = item['item_id']
-                band_name = item['band_name']
-                title = item['item_title']
-                token = item['token']
-                log.info(f'Found item: {band_name} / {title} (id:{item_id})')
-                download_url_type = item['sale_item_type']
-                download_url_id = item['sale_item_id']
-                download_url_key = f'{download_url_type}{download_url_id}'
+            for item_data in items:
+                sale_item_type = item_data['sale_item_type']
+                sale_item_id = item_data['sale_item_id']
+                download_url_key = f'{sale_item_type}{sale_item_id}'
                 try:
                     download_url = redownload_urls[download_url_key]
                 except KeyError:
-                    log.error(f'Failed to locate download URL for {band_name} / {title} '
+                    log.error(f'Failed to locate download URL for {item.band_name} / {item.title} '
                               f'(key:{download_url_key}), skipping item...')
                     continue
-                item['download_url'] = download_url
+                item_data['download_url'] = download_url
+                item = BandcampItem(item_data)
+                token = item.token
+                if item.item_type == 'album':
+                    log.info(f'Skipping album')
+                    continue
+                log.info(f'Found item: {item.band_name} / {item.item_title} (id:{item.item_id})')
                 self.purchases.append(item)
         log.info(f'Loaded {len(self.purchases)} purchases')
-        #print(json.dumps(self.purchases[0], indent=4, sort_keys=True))
         return True
-
-    def load_download_url(self, purchase, encoding='flac'):
-        """
-            Fetches the download URL for a purchase in the requested format.
-            Defaults to FLAC.
-        """
-        download_url = purchase['download_url']
-        item_id = purchase['item_id']
-        item_type = purchase['item_type']
-        if item_type not in ('album', 'track'):
-            band_name = item['band_name']
-            title = item['item_title']
-            log.error(f'Item {item_id} ({band_name} / {title}) has an unknown item type: {item_type}, skipping')
-            return False
-        # get the pagedata
-        soup = self._request('get', download_url)
-        pagedata = self._extract_pagedata(soup)
+    
+    def get_download_file_url(self, item, encoding='flac'):
+        soup = self._request('get', item.download_url)
+        pagedata = self._extract_pagedata_from_soup(soup)
+        download_url = None
+        if not pagedata:
+            raise ValueError(f'Either "url" or "pagedata" must be supplied')
         try:
             digital_items = pagedata['digital_items']
         except KeyError as e:
@@ -225,7 +247,7 @@ class Bandcamp:
             except KeyError as e:
                 raise BandcampError(f'Failed to parse pagedata JSON, does not contain an '
                                     f'"digital_items[].art_id" key') from e
-            if digital_item_id == item_id:
+            if digital_item_id == item.item_id:
                 try:
                     downloads = digital_item['downloads']
                 except KeyError as e:
@@ -238,8 +260,24 @@ class Bandcamp:
                     raise BandcampError(f'Download formats does not contain requested encoding: {encoding} '
                                         f'(available encodings: {encodings})') from e
                 try:
-                    return download_format['url']
+                    download_url = download_format['url']
                 except KeyError as e:
                     raise BandcampError(f'Failed to parse pagedata JSON, does not contain an '
                                         f'"digital_items.downloads.[encoding].url" key') from e
+                return download_url
         return False
+
+
+class BandcampItem:
+
+    def __init__(self, data):
+        self._data = data
+
+    def __repr__(self):
+        return json.dumps(self._data, indent=4, sort_keys=True)
+
+    def __getattr__(self, key):
+        try:
+            return self._data[key]
+        except KeyError as e:
+            raise KeyError(f'BandcampItem value "{key}" does not exist') from e

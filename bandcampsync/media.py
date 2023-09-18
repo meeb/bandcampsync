@@ -44,7 +44,7 @@ class LocalMedia:
         try:
             return int(item_id)
         except Exception as e:
-            raise ValueError(f'Failed to cast item ID "{item_id}" as an int: {e}') from e
+            raise ValueError(f'Failed to cast item ID from {filepath} "{item_id}" as an int: {e}') from e
 
     def is_locally_downloaded(self, item_id):
         return item_id in self.media
@@ -52,14 +52,12 @@ class LocalMedia:
     def is_dir(self, path):
         return path in self.dirs
 
-    def get_path_for_purchase(self, purchase):
-        band_name = purchase['band_name']
-        title = purchase['item_title']
-        return self.media_dir / band_name / title
+    def get_path_for_purchase(self, item):
+        return self.media_dir / item.band_name / item.item_title
 
-    def write_bandcamp_id(self, item_id, dirpath):
+    def write_bandcamp_id(self, item, dirpath):
         outfile = dirpath / self.ITEM_INDEX_FILENAME
-        log.info(f'Writing bandcamp item id:{item_id} to: {outfile}')
+        log.info(f'Writing bandcamp item id:{item.item_id} to: {outfile}')
         with open(outfile, 'wt') as f:
-            f.write(f'{item_id}\n')
+            f.write(f'{item.item_id}\n')
         return True

@@ -31,6 +31,7 @@ if __name__ == '__main__':
     dir_path_env = os.getenv('DIRECTORY', '/downloads')
     media_format_env = os.getenv('FORMAT', 'flac')
     run_daily_at_env = os.getenv('RUN_DAILY_AT', '3')
+    exit_after_run_env = os.getenv('EXIT_AFTER_RUN', '0')
     cookies_path = Path(cookies_path_env).resolve()
     dir_path = Path(dir_path_env).resolve()
     if not cookies_path.is_file():
@@ -51,6 +52,11 @@ if __name__ == '__main__':
         raise ValueError(f'Invalid RUN_DAILY_AT, got: {run_daily_at}') from e
     if not 0 <= run_daily_at <= 23:
         raise ValueError(f'Invalid RUN_DAILY_AT, must be between 0 and 23, got: {run_daily_at}')
+    try:
+        exit_after_run = int(exit_after_run_env)
+    except (ValueError, TypeError):
+        exit_after_run = 0
+    exit_after_run = True if exit_after_run else False
     time_now = datetime.now(tz).replace(microsecond=0)
     log.info(f'Time now in {tz}: {time_now}')
     log.info(f'Running an initial one-off synchronisation immediately')
@@ -64,6 +70,9 @@ if __name__ == '__main__':
             time_tomorrow = time_now + timedelta(days=1)
             time_tomorrow = time_tomorrow.replace(hour=run_daily_at, minute=0, second=0, microsecond=0)
             next_sleep = int((time_tomorrow - time_now).total_seconds() + random_delay)
+            if exit_after_run:
+                log.info(f'Exiting after run')
+                break
             log.info(f'Scheduling next run for {time_tomorrow} + {random_delay} second random offset')
             log.info(f'Sleeping for {next_sleep} seconds')
             sleep(next_sleep)

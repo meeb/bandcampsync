@@ -10,6 +10,7 @@ log = get_logger('download')
 
 
 def mask_sig(url):
+    return url
     if '&sig=' not in url:
         return url
     url_parts = url.split('&')
@@ -19,24 +20,36 @@ def mask_sig(url):
     return '&'.join(url_parts)
 
 
-class InvalidContentType(Exception):
+class DownloadBadStatusCode(ValueError):
+    pass
+
+
+class DownloadInvalidContentType(ValueError):
     pass
 
 
 def download_file(url, target, mode='wb', chunk_size=8192, logevery=10, disallow_content_type='text/html'):
+    """
+        Attempts to stream a download to an open target file handle in chunks. If the
+        request returns a disallowed content type then return a failed state with the
+        response content.
+    """
     text = True if 't' in mode else False
     data_streamed = 0
     last_log = 0
     headers = {'User-Agent': USER_AGENT}
     with requests.get(url, stream=True, headers=headers) as r:
         r.raise_for_status()
+        if r.status_code != 200:
+            raise DownloadBadStatusCode(f'Got non-200 status code: {r.status_code}')
         try:
             content_type = r.headers.get('Content-Type', '')
         except (ValueError, KeyError):
             content_type = ''
         content_type_parts = content_type.split(';')
-        if content_type_parts[0].strip() == disallow_content_type:
-            raise InvalidContentType(f'Unexpected content type: {content_type}')
+        major_content_type = content_type_parts[0].strip()
+        if major_content_type == disallow_content_type:
+            raise DownloadInvalidContentType(f'Invalid content type: {major_content_type}')
         try:
             content_length = int(r.headers.get('Content-Length', '0'))
         except (ValueError, KeyError):
