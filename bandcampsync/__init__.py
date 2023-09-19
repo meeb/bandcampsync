@@ -27,7 +27,7 @@ def do_sync(cookies_path, cookies, dir_path, media_format):
             log.info(f'New media item, downloading: {item.band_name} / {item.item_title} '
                      f'(id:{item.item_id}) in "{media_format}"')
             local_path = local_media.get_path_for_purchase(item)
-            local_path.mkdir(parents=True)
+            local_path.mkdir(parents=True, exist_ok=True)
             download_file_url = bandcamp.get_download_file_url(item, encoding=media_format)
             with NamedTemporaryFile(mode='w+b', delete=True) as temp_file:
                 log.info(f'Downloading item {item.band_name} / {item.item_title} (id:{item.item_id}) '
