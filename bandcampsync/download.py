@@ -10,7 +10,6 @@ log = get_logger('download')
 
 
 def mask_sig(url):
-    return url
     if '&sig=' not in url:
         return url
     url_parts = url.split('&')

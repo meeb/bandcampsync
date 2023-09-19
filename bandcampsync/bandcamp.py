@@ -222,9 +222,6 @@ class Bandcamp:
                 item_data['download_url'] = download_url
                 item = BandcampItem(item_data)
                 token = item.token
-                if item.item_type == 'album':
-                    log.info(f'Skipping album')
-                    continue
                 log.info(f'Found item: {item.band_name} / {item.item_title} (id:{item.item_id})')
                 self.purchases.append(item)
         log.info(f'Loaded {len(self.purchases)} purchases')
