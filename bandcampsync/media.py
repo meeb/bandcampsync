@@ -1,3 +1,4 @@
+from unicodedata import normalize
 from .logger import get_logger
 
 
@@ -24,6 +25,16 @@ class LocalMedia:
         self.dirs = set()
         log.info(f'Local media directory: {self.media_dir}')
         self.index()
+
+    def _clean_path(path_str):
+        path_str = str(path_str)
+        disallowed_punctuation = '"#%\'*/?\\`'
+        normalized_path = normalize('NFKD', path_str)
+        outstr = ''
+        for c in normalized_path:
+            if c not in disallowed_punctuation:
+                outstr += c
+        return outstr
 
     def index(self):
         for child1 in self.media_dir.iterdir():
@@ -53,7 +64,8 @@ class LocalMedia:
         return path in self.dirs
 
     def get_path_for_purchase(self, item):
-        return self.media_dir / item.band_name / item.item_title
+
+        return self.media_dir / self._clean_path(item.band_name) / self._clean_path(item.item_title)
 
     def write_bandcamp_id(self, item, dirpath):
         outfile = dirpath / self.ITEM_INDEX_FILENAME
