@@ -173,7 +173,7 @@ class Bandcamp:
                                 f'invalid: {fan}') from e
         self.is_authenticated = self.user_id > 0
         log.info(f'Loaded page data, session is authenticated for user '
-                 f'"{self.user_name}" (id:{self.user_id}, url:{self.user_url})')
+                 f'"{self.user_name}" (user id:{self.user_id}, url:{self.user_url})')
         return True
 
     def load_purchases(self):
@@ -183,7 +183,7 @@ class Bandcamp:
         """
         if not self.is_authenticated:
             raise BandcampError(f'Authentication not verified, call load_pagedata() first')
-        log.info(f'Loading purchases for: {self.user_name} (id:{self.user_id})')
+        log.info(f'Loading purchases for: {self.user_name} (user id:{self.user_id})')
         self.purchases = []
         now = int(time())
         page_ts = 0
