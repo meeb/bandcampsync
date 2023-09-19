@@ -3,7 +3,7 @@ import sys
 from setuptools import setup, find_packages
 
 
-version = '0.2.0'
+version = '0.2.1'
 
 
 with open('README.md', 'rt') as f:
