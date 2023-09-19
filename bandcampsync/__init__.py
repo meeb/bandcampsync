@@ -48,14 +48,14 @@ def do_sync(cookies_path, cookies, dir_path, media_format):
                         unzip_file(temp_file.name, temp_dir)
                         temp_path = Path(temp_dir)
                         for file_path in temp_path.iterdir():
-                            file_dest = local_path / file_path.name
+                            file_dest = local_media.get_path_for_file(local_path, file_path.name)
                             log.info(f'Moving extracted file: "{file_path}" to "{file_dest}"')
                             move_file(file_path, file_dest)
                     local_media.write_bandcamp_id(item_id, local_path)
                 elif item.item_type == 'track':
                     log.info(f'Downloaded file is not a single track: {temp_file_path}')
                     slug = item.url_hints.get('slug', item.item_title)
-                    file_dest = local_path / f'{slug}.{media_format}'
+                    file_dest = local_media.get_path_for_file(local_path, f'{slug}.{media_format}')
                     log.info(f'Copying single file: "{temp_file_path}" to "{file_dest}"')
                     copy_file(temp_file_path, file_dest)
                     local_media.write_bandcamp_id(item, local_path)

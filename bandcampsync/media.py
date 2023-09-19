@@ -64,8 +64,10 @@ class LocalMedia:
         return path in self.dirs
 
     def get_path_for_purchase(self, item):
-
         return self.media_dir / self._clean_path(item.band_name) / self._clean_path(item.item_title)
+
+    def get_path_for_file(self, local_path, file_name):
+        return local_path / self._clean_path(file_name)
 
     def write_bandcamp_id(self, item, dirpath):
         outfile = dirpath / self.ITEM_INDEX_FILENAME
