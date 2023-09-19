@@ -26,7 +26,7 @@ class LocalMedia:
         log.info(f'Local media directory: {self.media_dir}')
         self.index()
 
-    def _clean_path(path_str):
+    def _clean_path(self, path_str):
         path_str = str(path_str)
         disallowed_punctuation = '"#%\'*/?\\`'
         normalized_path = normalize('NFKD', path_str)

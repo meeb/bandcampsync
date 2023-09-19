@@ -1,6 +1,7 @@
 import json
+import re
 from time import time
-from http.cookies import BaseCookie
+from http.cookies import SimpleCookie
 from html import unescape as html_unescape
 from urllib.parse import urlsplit, urlunsplit
 from bs4 import BeautifulSoup
@@ -32,7 +33,7 @@ class Bandcamp:
         self.user_url = ''
         self.user_verified = False
         self.user_private = False
-        self.cookies = BaseCookie()
+        self.cookies = SimpleCookie()
         self.purchases = []
         try:
             self.cookies.load(cookies)
@@ -45,6 +46,10 @@ class Bandcamp:
                                 f'authenticated browser')
         session_snip = session.value[:20]
         log.info(f'Located Bandcamp session in cookies: {session_snip}...')
+        # Create a requests session and map our SimpleCookie to it
+        self.session = requests.Session()
+        for cookie_name, morsel in self.cookies.items():
+            self.session.cookies.set(cookie_name, morsel.value)
 
     @property
     def cookies_str(self):
@@ -66,11 +71,13 @@ class Bandcamp:
             cookies[cookie_value.key] = cookie_value.value
         return cookies
 
-    def _request(self, method, url, data={}, json_data={}, is_json=False):
+    def _request(self, method, url, data=None, json_data=None, is_json=False, as_raw=False):
         headers = {'User-Agent': USER_AGENT}
         try:
+            # The debug logs do not mask the URL which may be a security issue if you run
+            # with level=logging.DEBUG
             log.debug(f'Making {method} request to {url}')
-            response = requests.request(
+            response = self.session.request(
                 method,
                 url,
                 headers=headers,
@@ -79,46 +86,16 @@ class Bandcamp:
                 json=json_data
             )
         except Exception as e:
-            raise BandcampError(f'Failed to make HTTP request to {url}: {e}') from e
+            raise BandcampError(f'Failed to make HTTP request to {mask_sig(url)}: {e}') from e
         if response.status_code != 200:
-            raise BandcampError(f'Failed to make HTTP request to {url}: '
+            raise BandcampError(f'Failed to make HTTP request to {mask_sig(url)}: '
                                 f'unknown status code response: {response.status_code}')
-        try:
-            # If there are updated cookies returned from in the response header update our
-            # local cookie jar
-            set_cookie = response.headers['set-cookie']
-            self.cookies.load(set_cookie)
-        except Exception:
-            pass
-        if is_json:
+        if as_raw:
+            return response.text
+        elif is_json:
             return json.loads(response.text)
         else:
             return BeautifulSoup(response.text, 'html.parser')
-
-    def _get_redirect_url(self, url):
-        """
-            Requests (HTTP GET) a URL assuming it will return a redirect (301 or
-            303) and return the URL you are being redirected to.
-        """
-        headers = {'User-Agent': USER_AGENT}
-        try:
-            log.debug(f'Making GET (redirect check) request to {url}')
-            response = requests.get(
-                url,
-                headers=headers,
-                cookies=self._plain_cookies(),
-                allow_redirects=False
-            )
-        except Exception as e:
-            raise BandcampError(f'Failed to make HTTP request to {url}: {e}') from e
-        if response.status_code in (301, 303):
-            try:
-                return response.headers['Location']
-            except KeyError as e:
-                raise BandcampError(f'Redirect URL {url} returned a 301 or 303 but no Location header')
-        else:
-            # Not a redirect
-            return False
 
     def _extract_pagedata_from_soup(self, soup):
         pagedata_tag = soup.find('div', id='pagedata')
@@ -142,6 +119,23 @@ class Bandcamp:
         """
         soup = BeautifulSoup(html, 'html.parser')
         return self._extract_pagedata_from_soup(soup)
+
+    def _get_js_stat_url(self, body, download_url):
+        """
+            Checks the "stat" download URL body, which is in JavaScript, for
+            either the OK response or a new updated download URL.
+        """
+        body = body.strip()
+        if body == "var _statDL_result = { result: 'ok'};":
+            # Download is OK, original download URL will work
+            return download_url
+        # Attempt to find the updated download_url in the JavaScript with a hacky regex
+        pattern = re.compile('\"([^\"]+)\":\"([^\"]+)\"')
+        for k, v in pattern.findall(body):
+            if k == 'download_url':
+                return v
+        # Fallback to the original download URL
+        return download_url
 
     def verify_authentication(self):
         """
@@ -183,7 +177,7 @@ class Bandcamp:
         """
         if not self.is_authenticated:
             raise BandcampError(f'Authentication not verified, call load_pagedata() first')
-        log.info(f'Loading purchases for: {self.user_name} (user id:{self.user_id})')
+        log.info(f'Loading purchases for "{self.user_name}" (user id:{self.user_id})')
         self.purchases = []
         now = int(time())
         page_ts = 0
@@ -263,6 +257,27 @@ class Bandcamp:
                                         f'"digital_items.downloads.[encoding].url" key') from e
                 return download_url
         return False
+
+    def check_download_stat(self, item, file_download_url):
+        """
+            Constructs the download "stat" URL and verifies the state of the download.
+            If the state is OK, return the existing URL (download is OK) otherwise wait
+            for the stat to complete and return the new download URL.
+        """
+        download_url_parts = urlsplit(file_download_url)
+        path = download_url_parts.path
+        path_parts = path.split('/')
+        if path_parts[1] == 'download':
+            path_parts[1] = 'statdownload'
+        stat_url = urlunsplit((
+            download_url_parts.scheme,
+            download_url_parts.netloc,
+            '/'.join(path_parts),
+            download_url_parts.query,
+            ''
+        ))
+        body = self._request('get', stat_url, as_raw=True)
+        return self._get_js_stat_url(body, file_download_url)
 
 
 class BandcampItem:
