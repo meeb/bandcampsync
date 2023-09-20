@@ -7,8 +7,3 @@ name = "pypi"
 requests = "*"
 beautifulsoup4 = "*"
 html5lib = "*"
-
-[dev-packages]
-
-[requires]
-python_version = "3.10"
