@@ -19,19 +19,19 @@ def do_sync(cookies_path, cookies, dir_path, media_format):
     bandcamp.verify_authentication()
     bandcamp.load_purchases()
     for item in bandcamp.purchases:
-        if local_media.is_locally_downloaded(item.item_id):
-            log.info(f'Already locally downloaded, skipping: "{item.band_name} / {item.item_title} "'
+        local_path = local_media.get_path_for_purchase(item)
+        if local_media.is_locally_downloaded(item, local_path):
+            log.info(f'Already locally downloaded, skipping: "{item.band_name} / {item.item_title}" '
                      f'(id:{item.item_id})')
             continue
         else:
-            log.info(f'New media item, will download: "{item.band_name} / {item.item_title} "'
+            log.info(f'New media item, will download: "{item.band_name} / {item.item_title}" '
                      f'(id:{item.item_id}) in "{media_format}"')
-            local_path = local_media.get_path_for_purchase(item)
             local_path.mkdir(parents=True, exist_ok=True)
             try:
                 initial_download_url = bandcamp.get_download_file_url(item, encoding=media_format)
             except BandcampError as e:
-                log.error(f'Failed to locate download URL for media item "{item.band_name} / {item.item_title} " '
+                log.error(f'Failed to locate download URL for media item "{item.band_name} / {item.item_title}" '
                           f'(id:{item.item_id}), unable to download release ({e}), skipping')
                 continue
             download_file_url = bandcamp.check_download_stat(item, initial_download_url)

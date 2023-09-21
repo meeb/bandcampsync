@@ -23,6 +23,7 @@ class LocalMedia:
         self.media_dir = media_dir
         self.media = {}
         self.dirs = set()
+        self.item_names = set()
         log.info(f'Local media directory: {self.media_dir}')
         self.index()
 
@@ -46,6 +47,7 @@ class LocalMedia:
                             if child3.name == self.ITEM_INDEX_FILENAME:
                                 item_id = self.read_item_id(child3)
                                 self.media[item_id] = child2
+                                self.item_names.add((child2.parent.name, child2.name))
                                 log.info(f'Detected locally downloaded media: {item_id} = {child2}')
         return True
 
@@ -57,8 +59,16 @@ class LocalMedia:
         except Exception as e:
             raise ValueError(f'Failed to cast item ID from {filepath} "{item_id}" as an int: {e}') from e
 
-    def is_locally_downloaded(self, item_id):
-        return item_id in self.media
+    def is_locally_downloaded(self, item, local_path):
+        if item.item_id in self.media:
+            return True
+        item_name = (local_path.parent.name, local_path.name)
+        if item_name in self.item_names:
+            log.info(f'Detected album at "{local_path}" but with an item ID mismatch '
+                     f'({self.ITEM_INDEX_FILENAME} file does not contain {item.item_id}), '
+                     f'you may want to check this item is correctly downloaded')
+            return True
+        return False
 
     def is_dir(self, path):
         return path in self.dirs
