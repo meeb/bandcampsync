@@ -23,6 +23,8 @@ if __name__ == '__main__':
         help='Path to the directory to download media to')
     parser.add_argument('-f', '--format', default='flac',
         help='Media format to download, defaults to "flac"')
+    parser.add_argument('-t', '--temp-dir', default=None,
+        help='Path to use for temporary downloads')
     args = parser.parse_args()
     if args.version:
         print(f'BandcampSync version: {version}', file=sys.stdout)
@@ -34,9 +36,15 @@ if __name__ == '__main__':
         raise ValueError(f'Cookies file does not exist: {cookies_path}')
     if not dir_path.is_dir():
         raise ValueError(f'Directory does not exist: {dir_path}')
+    if args.temp_dir:
+        temp_dir = Path(args.temp_dir).resolve()
+        if not temp_dir.is_dir():
+            raise ValueError(f'Temporary directory does not exist: {temp_dir}')
+    else:
+        temp_dir = None
     log.info(f'BandcampSync v{version} starting')
     with open(cookies_path, 'rt') as f:
         cookies = f.read().strip()
     log.info(f'Loaded cookies from "{cookies_path}"')
-    do_sync(cookies_path, cookies, dir_path, media_format)
+    do_sync(cookies_path, cookies, dir_path, media_format, temp_dir)
     log.info(f'Done')

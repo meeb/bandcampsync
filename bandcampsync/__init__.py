@@ -13,7 +13,7 @@ from .download import (download_file, unzip_file, move_file, copy_file,
 log = logger.get_logger('sync')
 
 
-def do_sync(cookies_path, cookies, dir_path, media_format):
+def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root):
     local_media = LocalMedia(media_dir=dir_path)
     bandcamp = Bandcamp(cookies=cookies)
     bandcamp.verify_authentication()
@@ -35,7 +35,7 @@ def do_sync(cookies_path, cookies, dir_path, media_format):
                           f'(id:{item.item_id}), unable to download release ({e}), skipping')
                 continue
             download_file_url = bandcamp.check_download_stat(item, initial_download_url)
-            with NamedTemporaryFile(mode='w+b', delete=True) as temp_file:
+            with NamedTemporaryFile(mode='w+b', delete=True, dir=temp_dir_root) as temp_file:
                 log.info(f'Downloading item "{item.band_name} / {item.item_title}" (id:{item.item_id}) '
                          f'from {mask_sig(download_file_url)} to {temp_file.name}')
                 try:
@@ -49,7 +49,7 @@ def do_sync(cookies_path, cookies, dir_path, media_format):
                 temp_file.seek(0)
                 temp_file_path = Path(temp_file.name)
                 if is_zip_file(temp_file_path):
-                    with TemporaryDirectory() as temp_dir:
+                    with TemporaryDirectory(dir=temp_dir_root) as temp_dir:
                         log.info(f'Decompressing downloaded zip "{temp_file.name}" to "{temp_dir}"')
                         unzip_file(temp_file.name, temp_dir)
                         temp_path = Path(temp_dir)
