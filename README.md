@@ -115,6 +115,9 @@ so the script won't run exactly on the hour.
 `PUID` and `PGID` are the user and group IDs to attempt run the download as.
 This sets the UID and GID of the files that are downloaded.
 
+`TEMP_DIR` variable can be set to a directory in the container. If set the
+directory is used as the temporary download location.
+
 
 ## Configuration
 
@@ -161,6 +164,8 @@ or in shorthand:
 $ bandcampsync -c cookies.txt -d /path/to/music
 ```
 
+You can also use `-t` or `--temp-dir` to set the temporary download directory used. See
+`-h` or `--help` for the full list of command line options.
 
 ## Formats
 
