@@ -205,19 +205,29 @@ class Bandcamp:
             except KeyError as e:
                 raise BandcampError(f'Failed to extract redownload_urls from collection results page')
             for item_data in items:
+                try:
+                    band_name = item_data['band_name']
+                except KeyError:
+                    log.error(f'Failed to locate band name in item metadata, skipping item...')
+                    continue
+                try:
+                    title = item_data['title']
+                except KeyError:
+                    log.error(f'Failed to locate title in item metadata (possibly a subscription?) for "{band_name}", skipping item...')
+                    continue
                 sale_item_type = item_data['sale_item_type']
                 sale_item_id = item_data['sale_item_id']
                 download_url_key = f'{sale_item_type}{sale_item_id}'
                 try:
                     download_url = redownload_urls[download_url_key]
                 except KeyError:
-                    log.error(f'Failed to locate download URL for {item.band_name} / {item.title} '
+                    log.error(f'Failed to locate download URL for {band_name} / {title} '
                               f'(key:{download_url_key}), skipping item...')
                     continue
                 item_data['download_url'] = download_url
                 item = BandcampItem(item_data)
                 token = item.token
-                log.info(f'Found item: {item.band_name} / {item.item_title} (id:{item.item_id})')
+                log.info(f'Found item: {band_name} / {title} (id:{item.item_id})')
                 self.purchases.append(item)
         log.info(f'Loaded {len(self.purchases)} purchases')
         return True
