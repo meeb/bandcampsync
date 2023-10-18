@@ -27,7 +27,11 @@ def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root):
         else:
             log.info(f'New media item, will download: "{item.band_name} / {item.item_title}" '
                      f'(id:{item.item_id}) in "{media_format}"')
-            local_path.mkdir(parents=True, exist_ok=True)
+            try:
+                local_path.mkdir(parents=True, exist_ok=True)
+            except OSError as e:
+                log.error('Failed to create directory: {local_path} ({e}), skipping purchase...')
+                continue
             try:
                 initial_download_url = bandcamp.get_download_file_url(item, encoding=media_format)
             except BandcampError as e:
