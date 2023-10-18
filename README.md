@@ -183,6 +183,12 @@ another format with the `--format` argument. Common Bandcamp download formats ar
 | `alac`          | Apple lossless format. Large file sizes. Original quality.      |
 | `wav`           | Uncompressed audio format. Biggest file size. Original quality. |
 
+You can also use `-i` or `--ignore` to bypass artists that have data issues that
+your OS can not handle.
+
+```bash
+$ bandcampsync --cookies cookies.txt --directory /path/to/music --ignore "badband"
+```
 
 # Contributing
 

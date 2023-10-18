@@ -21,9 +21,11 @@ if __name__ == '__main__':
         help='Path to the cookies file')
     parser.add_argument('-d', '--directory', required=True,
         help='Path to the directory to download media to')
+    parser.add_argument('-i', '--ignore', default='',
+        help='A space-delimited list of patterns matching artists to bypass')
     parser.add_argument('-f', '--format', default='flac',
         help='Media format to download, defaults to "flac"')
-    parser.add_argument('-t', '--temp-dir', default=None,
+    parser.add_argument('-t', '--temp-dir', default='',
         help='Path to use for temporary downloads')
     args = parser.parse_args()
     if args.version:
@@ -31,11 +33,15 @@ if __name__ == '__main__':
         sys.exit(0)
     cookies_path = Path(args.cookies).resolve()
     dir_path = Path(args.directory).resolve()
+    ign_patterns = args.ignore
     media_format = args.format
     if not cookies_path.is_file():
         raise ValueError(f'Cookies file does not exist: {cookies_path}')
     if not dir_path.is_dir():
         raise ValueError(f'Directory does not exist: {dir_path}')
+    if args.ignore:
+        patterns = args.ignore
+        log.warning(f'BandcampSync is bypassing: {patterns}')
     if args.temp_dir:
         temp_dir = Path(args.temp_dir).resolve()
         if not temp_dir.is_dir():
@@ -46,5 +52,5 @@ if __name__ == '__main__':
     with open(cookies_path, 'rt') as f:
         cookies = f.read().strip()
     log.info(f'Loaded cookies from "{cookies_path}"')
-    do_sync(cookies_path, cookies, dir_path, media_format, temp_dir)
+    do_sync(cookies_path, cookies, dir_path, media_format, temp_dir, ign_patterns)
     log.info(f'Done')
