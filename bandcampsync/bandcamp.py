@@ -231,7 +231,7 @@ class Bandcamp:
                 self.purchases.append(item)
         log.info(f'Loaded {len(self.purchases)} purchases')
         return True
-    
+
     def get_download_file_url(self, item, encoding='flac'):
         soup = self._request('get', item.download_url)
         pagedata = self._extract_pagedata_from_soup(soup)
