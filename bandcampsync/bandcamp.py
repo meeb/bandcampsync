@@ -211,7 +211,7 @@ class Bandcamp:
                     log.error(f'Failed to locate band name in item metadata, skipping item...')
                     continue
                 try:
-                    title = item_data['title']
+                    title = item_data['album_title']
                 except KeyError:
                     log.error(f'Failed to locate title in item metadata (possibly a subscription?) for "{band_name}", skipping item...')
                     continue
