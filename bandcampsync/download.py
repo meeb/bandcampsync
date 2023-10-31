@@ -40,7 +40,7 @@ def download_file(url, target, mode='wb', chunk_size=8192, logevery=10, disallow
     last_log = 0
     headers = {'User-Agent': USER_AGENT}
     with requests.get(url, stream=True, headers=headers) as r:
-        r.raise_for_status()
+        #r.raise_for_status()
         if r.status_code != 200:
             raise DownloadBadStatusCode(f'Got non-200 status code: {r.status_code}')
         try:
