@@ -157,13 +157,17 @@ class Bandcamp:
         except KeyError as e:
             raise BandcampError(f'Failed to parse pagedata JSON, does not contain an '
                                 f'"identities.fan" key') from e
+        if not isinstance(fan, dict):
+            raise BandcampError(f'Failed to parse pagedata JSON, "identities.fan" is not '
+                                f'a dictionary. Check your cookies.txt file is valid '
+                                f'and up to date')
         try:
             self.user_id = fan['id']
             self.user_name = fan['name']
             self.user_url = fan['url']
             self.user_verified = fan['verified']
             self.user_private = fan['private']
-        except KeyError as e:
+        except (KeyError, TypeError) as e:
             raise BandcampError(f'Failed to parse pagedata JSON, "identities.fan" seems '
                                 f'invalid: {fan}') from e
         self.is_authenticated = self.user_id > 0
