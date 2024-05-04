@@ -37,6 +37,13 @@ class LocalMedia:
                 outstr += c
         return outstr
 
+    def clean_format(self, format_str):
+        if '-' not in format_str:
+            return format_str
+        format_parts = format_str.split('-')
+        format_prefix = format_parts[0]
+        return format_prefix if format_prefix else format_str
+
     def index(self):
         for child1 in self.media_dir.iterdir():
             if child1.is_dir():
