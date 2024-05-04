@@ -71,14 +71,20 @@ def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_pa
                         for file_path in temp_path.iterdir():
                             file_dest = local_media.get_path_for_file(local_path, file_path.name)
                             log.info(f'Moving extracted file: "{file_path}" to "{file_dest}"')
-                            move_file(file_path, file_dest)
+                            try:
+                                move_file(file_path, file_dest)
+                            except Exception as e:
+                                log.error(f'Failed to move {file_path} to {file_dest}: {e}')
                     local_media.write_bandcamp_id(item, local_path)
                 elif item.item_type == 'track':
                     slug = item.url_hints.get('slug', item.item_title)
                     format_extension = local_media.clean_format(media_format)
                     file_dest = local_media.get_path_for_file(local_path, f'{slug}.{format_extension}')
                     log.info(f'Copying single track: "{temp_file_path}" to "{file_dest}"')
-                    copy_file(temp_file_path, file_dest)
+                    try:
+                        copy_file(temp_file_path, file_dest)
+                    except Exception as e:
+                        log.error(f'Failed to copy {file_path} to {file_dest}: {e}')
                     local_media.write_bandcamp_id(item, local_path)
                 else:
                     log.error(f'Downloaded file for "{item.band_name} / {item.item_title}" (id:{item.item_id}) '
