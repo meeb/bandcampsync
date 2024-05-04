@@ -31,7 +31,11 @@ def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_pa
             continue
 
         local_path = local_media.get_path_for_purchase(item)
-        if local_media.is_locally_downloaded(item, local_path):
+        if item.is_preorder == True:
+            log.info(f'Item is a preorder, skipping: "{item.band_name} / {item.item_title}" '
+                     f'(id:{item.item_id})')
+            continue
+        elif local_media.is_locally_downloaded(item, local_path):
             log.info(f'Already locally downloaded, skipping: "{item.band_name} / {item.item_title}" '
                      f'(id:{item.item_id})')
             continue
