@@ -262,7 +262,7 @@ class Bandcamp:
                 try:
                     download_format = downloads[encoding]
                 except KeyError as e:
-                    encodings = download_format.keys()
+                    encodings = downloads.keys()
                     raise BandcampError(f'Download formats does not contain requested encoding: {encoding} '
                                         f'(available encodings: {encodings})') from e
                 try:
