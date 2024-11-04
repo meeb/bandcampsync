@@ -45,7 +45,7 @@ def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_pa
             try:
                 local_path.mkdir(parents=True, exist_ok=True)
             except OSError as e:
-                log.error('Failed to create directory: {local_path} ({e}), skipping purchase...')
+                log.error(f'Failed to create directory: {local_path} ({e}), skipping purchase...')
                 continue
             try:
                 initial_download_url = bandcamp.get_download_file_url(item, encoding=media_format)
