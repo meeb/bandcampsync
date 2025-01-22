@@ -40,13 +40,13 @@ class Bandcamp:
             self.cookies.load(cookies)
         except Exception as e:
             raise BandcampError(f'Failed to parse cookies string: {e}') from e
-        session = self.cookies.get('session')
-        if not session:
-            raise BandcampError(f'Cookie data does not contain a session value, make sure your '
+        identity = self.cookies.get('identity')
+        if not identity:
+            raise BandcampError(f'Cookie data does not contain an identity value, make sure your '
                                 f'cookies.txt file is valid and you copied it from an '
                                 f'authenticated browser')
-        session_snip = session.value[:20]
-        log.info(f'Located Bandcamp session in cookies: {session_snip}...')
+        identity_snip = identity.value[:20]
+        log.info(f'Located Bandcamp identity in cookies: {identity_snip}...')
         # Create a requests session and map our SimpleCookie to it
         self.session = requests.Session()
         for cookie_name, morsel in self.cookies.items():
