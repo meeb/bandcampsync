@@ -35,7 +35,7 @@ RUN set -x && \
   # Allow root to use sudo
   echo "root  ALL = NOPASSWD: /bin/su ALL" >> /etc/sudoers && \
   # Install BandcampSync
-  python3 -m pip install --break-system-packages git+https://github.com/meeb/bandcampsync.git@v0.4.1#egg=bandcampsync
+  python3 -m pip install --break-system-packages git+https://github.com/meeb/bandcampsync.git@v0.4.2#egg=bandcampsync
 
 # Volumes
 VOLUME ["/config", "/downloads"]
