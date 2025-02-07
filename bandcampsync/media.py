@@ -29,7 +29,7 @@ class LocalMedia:
 
     def _clean_path(self, path_str):
         path_str = str(path_str)
-        disallowed_punctuation = '"#%\'*/?\\`'
+        disallowed_punctuation = '"#%\'*/?\\`:'
         normalized_path = normalize('NFKD', path_str)
         outstr = ''
         for c in normalized_path:
