@@ -34,12 +34,9 @@ class Bandcamp:
         self.user_url = ''
         self.user_verified = False
         self.user_private = False
-        self.cookies = SimpleCookie()
+        self.cookies = None
         self.purchases = []
-        try:
-            self.cookies.load(cookies)
-        except Exception as e:
-            raise BandcampError(f'Failed to parse cookies string: {e}') from e
+        self.load_cookies(cookies)
         identity = self.cookies.get('identity')
         if not identity:
             raise BandcampError(f'Cookie data does not contain an identity value, make sure your '
@@ -51,6 +48,30 @@ class Bandcamp:
         self.session = requests.Session()
         for cookie_name, morsel in self.cookies.items():
             self.session.cookies.set(cookie_name, morsel.value)
+
+    def load_cookies(self, cookies_str):
+        self.cookies = SimpleCookie()
+        try:
+            self.cookies.load(cookies_str)
+        except Exception as e:
+            raise BandcampError(f'Failed to parse cookies string: {e}') from e
+        if len(self.cookies) == 0:
+            # Failed to load any cookies, attempt to parse the cookies string as a Netscape cookies export
+            lines = cookies_str.strip().split('\n')
+            for line in lines:
+                if line.startswith('#'):
+                    continue
+                line = line.strip()
+                if not line:
+                    continue
+                parts = line.split('\t')
+                if len(parts) == 7:
+                    domain, tailmatch, path, secure, expires, name, value = parts
+                    cookie_string = f"{name.strip()}={value.strip()}; Domain={domain.strip()}; Path={path.strip()}"
+                    if secure == 'TRUE':
+                        cookie_string += "; Secure"
+                    self.cookies.load(cookie_string)
+        return True
 
     @property
     def cookies_str(self):
