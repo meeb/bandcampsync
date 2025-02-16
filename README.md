@@ -118,6 +118,11 @@ This sets the UID and GID of the files that are downloaded.
 `TEMP_DIR` variable can be set to a directory in the container. If set the
 directory is used as the temporary download location.
 
+`IGNORE` can be set to ignore bands, same as the `--ignore` CLI argument.
+
+`NOTIFY_URL` can be set to a URL to send an HTTP GET request to when new
+items have been loaded, same as the `--notify-url` CLI argument.
+
 
 ## Configuration
 
@@ -148,6 +153,9 @@ IMPORTANT NOTE: Keep the `cookies.txt` file safe! Anyone with access to this fil
 can log into your Bandcamp account, impersonate you, potentially make purchases
 and generally have total access to your Bandcamp account!
 
+You can also use Netscape formatted cookie export files if you have exported your
+cookies using a cookie exporter plugin or similar tool.
+
 
 ## CLI usage
 
@@ -167,6 +175,29 @@ $ bandcampsync -c cookies.txt -d /path/to/music
 You can also use `-t` or `--temp-dir` to set the temporary download directory used. See
 `-h` or `--help` for the full list of command line options.
 
+You can also use `-i` or `--ignore` to bypass artists that have data issues that
+your OS can not handle.
+
+```bash
+$ bandcampsync --cookies cookies.txt --directory /path/to/music --ignore "badband"
+```
+
+`--ignore` supports multiple strings space seperated strings, for example
+`--ignore "band1 band2 band3"`.
+
+
+You can notify an an external HTTP server when new items have been loaded with `-n` or
+`--notify-url`.
+
+```bash
+$ bandcampsync ... --notify-url "http://some.service.local/some-uri"
+```
+
+You can use this to call a "refresh" hook on media servers (for example rescan a Plex
+or Jellyfin library). The `--notify-url` parameter, if set, simply makes an HTTP GET
+request to the specified URL and confirms it returns a `2XX` response.
+
+
 ## Formats
 
 By default, BandcampSync will download your music in the `flac` format. You can specify
@@ -183,12 +214,6 @@ another format with the `--format` argument. Common Bandcamp download formats ar
 | `alac`          | Apple lossless format. Large file sizes. Original quality.      |
 | `wav`           | Uncompressed audio format. Biggest file size. Original quality. |
 
-You can also use `-i` or `--ignore` to bypass artists that have data issues that
-your OS can not handle.
-
-```bash
-$ bandcampsync --cookies cookies.txt --directory /path/to/music --ignore "badband"
-```
 
 # Contributing
 
