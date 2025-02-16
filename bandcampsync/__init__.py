@@ -5,6 +5,7 @@ from .config import VERSION as version
 from .logger import get_logger
 from .bandcamp import Bandcamp, BandcampError
 from .media import LocalMedia
+from .notify import NotifyURL
 from .download import (download_file, unzip_file, move_file, copy_file,
                        mask_sig, is_zip_file, DownloadInvalidContentType,
                        DownloadBadStatusCode)
@@ -13,11 +14,18 @@ from .download import (download_file, unzip_file, move_file, copy_file,
 log = logger.get_logger('sync')
 
 
-def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_patterns):
+def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_patterns, notify_url):
+
     local_media = LocalMedia(media_dir=dir_path)
     bandcamp = Bandcamp(cookies=cookies)
     bandcamp.verify_authentication()
     bandcamp.load_purchases()
+    new_items_downloaded = False
+    if notify_url:
+        notifier = NotifyURL(notify_url)
+    else:
+        notifier = None
+
     for item in bandcamp.purchases:
 
         # Check if any ignore pattern matches the band name
@@ -90,7 +98,14 @@ def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_pa
                     except Exception as e:
                         log.error(f'Failed to copy {file_path} to {file_dest}: {e}')
                     local_media.write_bandcamp_id(item, local_path)
+                    new_items_downloaded = True
                 else:
                     log.error(f'Downloaded file for "{item.band_name} / {item.item_title}" (id:{item.item_id}) '
                               f'at "{temp_file_path}" is not a zip archive or a single track, skipping')
+
+    if new_items_downloaded:
+        log.info(f'New media items downloaded')
+        if notifier:
+            notifier.notify()
+
     return True

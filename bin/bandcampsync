@@ -27,6 +27,8 @@ if __name__ == '__main__':
         help='Media format to download, defaults to "flac"')
     parser.add_argument('-t', '--temp-dir', default='',
         help='Path to use for temporary downloads')
+    parser.add_argument('-n', '--notify-url', default='',
+        help='URL to notify with a GET request when any new downloads have completed')
     args = parser.parse_args()
     if args.version:
         print(f'BandcampSync version: {version}', file=sys.stdout)
@@ -48,9 +50,14 @@ if __name__ == '__main__':
             raise ValueError(f'Temporary directory does not exist: {temp_dir}')
     else:
         temp_dir = None
+    if args.notify_url:
+        notify_url = args.notify_url
+        log.info(f'BandcampSync will notify: {notify_url}')
+    else:
+        notify_url = None
     log.info(f'BandcampSync v{version} starting')
     with open(cookies_path, 'rt') as f:
         cookies = f.read().strip()
     log.info(f'Loaded cookies from "{cookies_path}"')
-    do_sync(cookies_path, cookies, dir_path, media_format, temp_dir, ign_patterns)
+    do_sync(cookies_path, cookies, dir_path, media_format, temp_dir, ign_patterns, notify_url)
     log.info(f'Done')
