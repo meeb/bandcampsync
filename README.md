@@ -197,6 +197,20 @@ You can use this to call a "refresh" hook on media servers (for example rescan a
 or Jellyfin library). The `--notify-url` parameter, if set, simply makes an HTTP GET
 request to the specified URL and confirms it returns a `2XX` response.
 
+For advanced notify URLs you can use the following `--notify-url` format:
+
+`method url headers body`
+
+`method` must be one of `GET` or `POST`. `url` is any URL. `headers` are a comma
+separated list of `key=value` pairs and `body` is an body string to send if the `method`
+is `POST`. You can use `-` for header and body values to leave them unset. Some examples:
+
+`GET http://some.service.local/some-uri - -`
+
+`GET http://some.service.local/some-uri header1=abc,header2 -`
+
+`POST http://some.service.local/some-uri auth-header=abc somedata`
+
 
 ## Formats
 
