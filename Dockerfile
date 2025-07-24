@@ -1,5 +1,8 @@
 FROM debian:bookworm-slim
 
+ARG REPOSITORY="meeb/bandcampsync"
+ARG VERSION="v0.5.1"
+
 ENV DEBIAN_FRONTEND="noninteractive" \
   HOME="/root" \
   LANGUAGE="en_US.UTF-8" \
@@ -35,7 +38,7 @@ RUN set -x && \
   # Allow root to use sudo
   echo "root  ALL = NOPASSWD: /bin/su ALL" >> /etc/sudoers && \
   # Install BandcampSync
-  python3 -m pip install --break-system-packages git+https://github.com/meeb/bandcampsync.git@v0.5.1#egg=bandcampsync
+  python3 -m pip install --break-system-packages git+https://github.com/${REPOSITORY}.git@${VERSION}#egg=bandcampsync
 
 # Volumes
 VOLUME ["/config", "/downloads"]
