@@ -30,10 +30,7 @@ class Bandcamp:
     def __init__(self, cookies=''):
         self.is_authenticated = False
         self.user_id = 0
-        self.user_name = ''
-        self.user_url = ''
         self.user_verified = False
-        self.user_private = False
         self.cookies = None
         self.purchases = []
         self.load_cookies(cookies)
@@ -120,9 +117,9 @@ class Bandcamp:
             return BeautifulSoup(response.text, 'html.parser')
 
     def _extract_pagedata_from_soup(self, soup):
-        pagedata_tag = soup.find('div', id='pagedata')
+        pagedata_tag = soup.find('div', id='HomepageApp')
         if not pagedata_tag:
-            raise BandcampError(f'Failed to locate <div id="pagedata"> in index HTML, this may '
+            raise BandcampError(f'Failed to locate <div id="HomepageApp"> in index HTML, this may '
                                 f'be an authentication issue or it may be that bandcamp.com has '
                                 f'updated their website and this tool needs to be updated.')
         encoded_pagedata = pagedata_tag.attrs.get('data-blob')
@@ -169,31 +166,27 @@ class Bandcamp:
         soup = self._request('get', url)
         pagedata = self._extract_pagedata_from_soup(soup)
         try:
-            identities = pagedata['identities']
+            pagecontext = pagedata['pageContext']
         except KeyError as e:
             raise BandcampError(f'Failed to parse pagedata JSON, does not contain an '
-                                f'"identities" key') from e
+                                f'"pageContext" key') from e
         try:
-            fan = identities['fan']
+            identity = pagecontext['identity']
         except KeyError as e:
-            raise BandcampError(f'Failed to parse pagedata JSON, does not contain an '
-                                f'"identities.fan" key') from e
-        if not isinstance(fan, dict):
-            raise BandcampError(f'Failed to parse pagedata JSON, "identities.fan" is not '
+            raise BandcampError(f'Failed to parse pagecontext JSON, does not contain an '
+                                f'"identity" key') from e
+        if not isinstance(identity, dict):
+            raise BandcampError(f'Failed to parse pagedata JSON, "identity" is not '
                                 f'a dictionary. Check your cookies.txt file is valid '
                                 f'and up to date')
         try:
-            self.user_id = fan['id']
-            self.user_name = fan['name']
-            self.user_url = fan['url']
-            self.user_verified = fan['verified']
-            self.user_private = fan['private']
+            self.user_id = identity['fanId']
+            self.user_verified = identity['isFanVerified']
         except (KeyError, TypeError) as e:
-            raise BandcampError(f'Failed to parse pagedata JSON, "identities.fan" seems '
+            raise BandcampError(f'Failed to parse pagedata JSON, "identity.fan" seems '
                                 f'invalid: {fan}') from e
         self.is_authenticated = self.user_id > 0
-        log.info(f'Loaded page data, session is authenticated for user '
-                 f'"{self.user_name}" (user id:{self.user_id}, url:{self.user_url})')
+        log.info(f'Loaded page data, session is authenticated for user id: {self.user_id})')
         return True
 
     def load_purchases(self):
@@ -203,12 +196,12 @@ class Bandcamp:
         """
         if not self.is_authenticated:
             raise BandcampError(f'Authentication not verified, call load_pagedata() first')
-        log.info(f'Loading purchases for "{self.user_name}" (user id:{self.user_id})')
+        log.info(f'Loading purchases for user id: {self.user_id}')
         self.purchases = []
         now = int(time())
         page_ts = 0
         token = f'{now}:{page_ts}:a::'
-        per_page = 100
+        per_page = 20
         while(True):
             log.info(f'Requesting {per_page} purchases using token {token}')
             data = {
