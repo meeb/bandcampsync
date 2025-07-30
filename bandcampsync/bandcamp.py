@@ -201,7 +201,7 @@ class Bandcamp:
         now = int(time())
         page_ts = 0
         token = f'{now}:{page_ts}:a::'
-        per_page = 20
+        per_page = 100
         while(True):
             log.info(f'Requesting {per_page} purchases using token {token}')
             data = {
