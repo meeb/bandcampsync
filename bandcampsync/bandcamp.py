@@ -116,8 +116,8 @@ class Bandcamp:
         else:
             return BeautifulSoup(response.text, 'html.parser')
 
-    def _extract_pagedata_from_soup(self, soup):
-        pagedata_tag = soup.find('div', id='HomepageApp')
+    def _extract_pagedata_from_soup(self, soup, id_name='pagedata'):
+        pagedata_tag = soup.find('div', id=id_name)
         if not pagedata_tag:
             raise BandcampError(f'Failed to locate <div id="HomepageApp"> in index HTML, this may '
                                 f'be an authentication issue or it may be that bandcamp.com has '
@@ -164,7 +164,7 @@ class Bandcamp:
         """
         url = self._construct_url('index')
         soup = self._request('get', url)
-        pagedata = self._extract_pagedata_from_soup(soup)
+        pagedata = self._extract_pagedata_from_soup(soup, id_name='HomepageApp')
         try:
             pagecontext = pagedata['pageContext']
         except KeyError as e:
