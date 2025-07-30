@@ -63,7 +63,7 @@ class NotifyURL:
             response = requests.post(self.url, headers=headers, data=self.body)
         # check response status code is between 200 and 299
         if 200 <= response.status_code < 300:
-            print(response.text)
+            #print(response.text)
             return True
         else:
             log.error(f'Failed {self.method} to {self.url} - got response code: HTTP/{response.status_code}')
