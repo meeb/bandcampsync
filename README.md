@@ -2,7 +2,7 @@
 
 BandcampSync is a Python module and command line script (also packed in
 a Docker container) which synchronises media purchased on a Bandcamp
-(http://bandcamp.com/) account with a local directory.
+(https://bandcamp.com/) account with a local directory.
 
 You may use this to download media you have purchased from Bandcamp to a
 local media server, such as Plex or Jellyfin.
@@ -221,7 +221,7 @@ another format with the `--format` argument. Common Bandcamp download formats ar
 | --------------- | --------------------------------------------------------------- |
 | `mp3-v0`        | Variable bitrate MP3. Small file sizes. OK quality.             |
 | `mp3-320`       | High quality MP3. Medium file sizes. Good quality.              |
-| `flac`          | Losses audio. Large file sizes. Original Quality.               |
+| `flac`          | Lossless audio. Large file sizes. Original Quality.             |
 | `aac-hi`        | Apple variable bitrate format. Small file sizes. OK quality.    |
 | `aiff-lossless` | Uncompressed audio format. Biggest file size. Original quality. |
 | `vorbis`        | Open source lossy format. Small file sizes. OK quality.         |
