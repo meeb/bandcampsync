@@ -45,6 +45,7 @@ VOLUME ["/config", "/downloads"]
 
 # Set the 'app' user UID and GID in the entrypoint
 COPY entrypoint.sh /entrypoint.sh
+COPY ignores.template.txt /ignores.template.txt
 ENTRYPOINT ["/entrypoint.sh"]
 
 # Run the service

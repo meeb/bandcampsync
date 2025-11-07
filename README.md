@@ -104,6 +104,16 @@ In the above example you would save your cookies data into a file called
 `cookies.txt` and save it at `/some/directory/bandcampsync-config/cookies.txt`.
 BandcampSync will look for this location when it starts up.
 
+In the `config` directory you will find an `ignores.txt` file. You may edit the
+file to specify which items not to download. The format is one bandcamp id per
+line (same as `bandcamp_item_id.txt` files), optionally followed by a comment
+that starts with `#`. For example:
+
+```
+1546934218  # Chrome Sparks / Sparks EP
+1418240212  # Chrome Sparks / Goddess EP
+```
+
 The `RUN_DAILY_AT` environment variable is the hour the `bandcampsync` script
 will run at. In this example, 3am local time. After running the container will
 sleep until the following 3am. It will run daily. There is also a randomised
@@ -172,11 +182,13 @@ or in shorthand:
 $ bandcampsync -c cookies.txt -d /path/to/music
 ```
 
-You can also use `-t` or `--temp-dir` to set the temporary download directory used. See
-`-h` or `--help` for the full list of command line options.
-
-You can also use `-i` or `--ignore` to bypass artists that have data issues that
+You can use `-t` or `--temp-dir` to set the temporary download directory used.
+You can use `-i` or `--ignore` to bypass artists that have data issues that
 your OS can not handle.
+You can use `-I` or `--ignore-file` to specify the path to a file containing
+bandcamp ids of each item to skip (see above).
+
+See `-h` or `--help` for the full list of command line options.
 
 ```bash
 $ bandcampsync --cookies cookies.txt --directory /path/to/music --ignore "badband"

@@ -28,6 +28,7 @@ class CatchShutdownSignal:
 if __name__ == '__main__':
     tz_name = os.getenv('TZ', 'UTC')
     cookies_path_env = os.getenv('COOKIES_FILE', '/config/cookies.txt')
+    ign_file_path_env = os.getenv('IGNORES_FILE', '/config/ignores.txt')
     dir_path_env = os.getenv('DIRECTORY', '/downloads')
     media_format_env = os.getenv('FORMAT', 'flac')
     ign_patterns = os.getenv('IGNORE', '')
@@ -36,6 +37,7 @@ if __name__ == '__main__':
     temp_dir_env = os.getenv('TEMP_DIR', '')
     notify_url_env = os.getenv('NOTIFY_URL', '')
     cookies_path = Path(cookies_path_env).resolve()
+    ign_file_path = Path(ign_file_path_env).resolve()
     dir_path = Path(dir_path_env).resolve()
     if not cookies_path.is_file():
         raise ValueError(f'Cookies file does not exist: {cookies_path}')
@@ -78,7 +80,7 @@ if __name__ == '__main__':
     try:
         while not catch_shutdown.shutdown:
             log.info(f'Starting synchronisation')
-            do_sync(cookies_path, cookies, dir_path, media_format_env, temp_dir, ign_patterns, notify_url)
+            do_sync(cookies_path, cookies, dir_path, media_format_env, temp_dir, ign_file_path, ign_patterns, notify_url)
             random_delay = randrange(0, 3600)
             time_now = datetime.now(tz).replace(microsecond=0)
             time_tomorrow = time_now + timedelta(days=1)
