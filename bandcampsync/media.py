@@ -22,7 +22,6 @@ class LocalMedia:
     def __init__(self, media_dir):
         self.media_dir = media_dir
         self.media = {}
-        self.dirs = set()
         self.item_names = set()
         log.info(f'Local media directory: {self.media_dir}')
         self.index()
@@ -49,7 +48,6 @@ class LocalMedia:
             if child1.is_dir():
                 for child2 in child1.iterdir():
                     if child2.is_dir():
-                        self.dirs.add(child2)
                         for child3 in child2.iterdir():
                             if child3.name == self.ITEM_INDEX_FILENAME:
                                 item_id = self.read_item_id(child3)
@@ -76,9 +74,6 @@ class LocalMedia:
                      f'you may want to check this item is correctly downloaded')
             return True
         return False
-
-    def is_dir(self, path):
-        return path in self.dirs
 
     def get_path_for_purchase(self, item):
         return self.media_dir / self._clean_path(item.band_name) / self._clean_path(item.item_title)
