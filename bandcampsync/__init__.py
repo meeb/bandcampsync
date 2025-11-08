@@ -102,15 +102,7 @@ def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_fi
                     log.error(f'Downloaded file for "{item.band_name} / {item.item_title}" (id:{item.item_id}) '
                               f'at "{temp_file_path}" is not a zip archive or a single track, skipping')
                     continue
-
-                if ign_file_path:
-                    # We assume that if you use an ignore file once, you'll
-                    # keep using it forever (e.g. Docker).
-                    # In case you don't, you'll get warnings for missing id file
-                    # on the items downloaded in the current session.
-                    ignores.add(item)
-                else:
-                    local_media.write_bandcamp_id(item, local_path)
+                ignores.add(item)
                 new_items_downloaded = True
 
     if new_items_downloaded:

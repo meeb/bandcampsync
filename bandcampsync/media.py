@@ -81,9 +81,3 @@ class LocalMedia:
     def get_path_for_file(self, local_path, file_name):
         return local_path / self._clean_path(file_name)
 
-    def write_bandcamp_id(self, item, dirpath):
-        outfile = dirpath / self.ITEM_INDEX_FILENAME
-        log.info(f'Writing bandcamp item id:{item.item_id} to: {outfile}')
-        with open(outfile, 'wt') as f:
-            f.write(f'{item.item_id}\n')
-        return True

@@ -24,23 +24,15 @@ The media directory will have the following format:
 /media/
 /media/Artist Name
 /media/Artist Name/Album Name
-/media/Artist Name/Album Name/bandcamp_item_id.txt (if no ignores file provided)
 /media/Artist Name/Album Name/cover.jpg
 /media/Artist Name/Album Name/Track Name.flac
 ```
 
 The directory format of `artist_name`/`item_title` is not editable.
 
-`bandcamp_item_id.txt` is a special file created in each item directory and
-it contains the Bandcamp item ID as an integer. This file is used by BandcampSync
-to track which media items have already been downloaded, when an ignores file is
-not being used. You can rename the artist or album directories, but do not delete
-the `bandcamp_item_id.txt` file or the media item will be redownloaded the next
-time `bandcampsync` is run.
-
-The `bandcamp_item_id.txt` file method of tracking what items are synchronised
-also means you can also use media managers such as Lidarr to rename artist,
-album and track names automatically without issues.
+Note: There used to be a `bandcamp_item_id.txt` file, used to keep track of
+which items had been downloaded, but it has now been replaced by the
+`ignores.txt` file.
 
 
 ## Installation
@@ -108,8 +100,7 @@ BandcampSync will look for this location when it starts up.
 In the `config` directory you will find an `ignores.txt` file. You may edit the
 file to specify which items not to download. The downloader automatically
 appends ids of the downloaded items during each run. The format is one bandcamp
-id per line (same as `bandcamp_item_id.txt` files), optionally followed by a
-comment that starts with `#`. For example:
+id per line, optionally followed by a comment that starts with `#`. For example:
 
 ```
 1546934218  # Chrome Sparks / Sparks EP
@@ -199,7 +190,8 @@ $ bandcampsync --cookies cookies.txt --directory /path/to/music --ignore "badban
 
 
 You can use `-I` or `--ignore-file` to specify the path to a file containing
-bandcamp ids of each item to skip (see above).
+bandcamp ids of each item to skip (see above). If not specified, it defaults to
+`ignores.txt` in the directory you're running the command.
 
 If you do, the items downloaded will be appended to the file, so that the next
 time you run the script those items will not be re-downloaded.

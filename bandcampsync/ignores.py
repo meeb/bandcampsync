@@ -16,8 +16,7 @@ class Ignores:
 
     def __init__(self, ign_file_path, ign_patterns):
         self.ign_file_path = ign_file_path
-        if self.ign_file_path:
-            log.info(f'Ignore file: {self.ign_file_path}')
+        log.info(f'Ignore file: {self.ign_file_path}')
         # List of substring patterns for band_name
         self.band_patterns = [pattern.lower() for pattern in ign_patterns.split()]
         if self.band_patterns:
@@ -31,9 +30,6 @@ class Ignores:
         self.parse_ignores()
 
     def parse_ignores(self):
-        if not self.ign_file_path:
-            log.info(f'No ignore file specified')
-            return
 
         # If a file path is specified, but there is no such file (e.g. first
         # run on Docker) we create it. We can't do it in the Dockerfile
@@ -76,9 +72,6 @@ class Ignores:
 
     def add(self, item):
         """Adds a new item to the ignores file, in the auto-managed section"""
-
-        if not self.ign_file_path:
-            return
 
         # We recreate the content of the file from the initial read.
         # Note that any manual change made to the ignores file while the process is running

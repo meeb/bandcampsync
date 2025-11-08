@@ -21,7 +21,7 @@ if __name__ == '__main__':
         help='Path to the cookies file')
     parser.add_argument('-d', '--directory', required=True,
         help='Path to the directory to download media to')
-    parser.add_argument('-I', '--ignore-file', default='',
+    parser.add_argument('-I', '--ignore-file', default='ignores.txt',
         help='Path to the ignore file')
     parser.add_argument('-i', '--ignore', default='',
         help='A space-delimited list of patterns matching artists to bypass')
