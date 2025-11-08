@@ -32,7 +32,7 @@ The directory format of `artist_name`/`item_title` is not editable.
 
 Note: There used to be a `bandcamp_item_id.txt` file, used to keep track of
 which items had been downloaded, but it has now been replaced by the
-`ignores.txt` file.
+`ignores.txt` file. Existing files being found will be automatically deleted.
 
 
 ## Installation

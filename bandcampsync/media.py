@@ -1,3 +1,4 @@
+import os
 from unicodedata import normalize
 from .logger import get_logger
 
@@ -17,6 +18,8 @@ class LocalMedia:
             /media_dir/Artist Name/Album Name/track2.flac
     """
 
+    # Once we're confident that all id files have been migrated to ignores.txt,
+    # we can stop handling these files.
     ITEM_INDEX_FILENAME = 'bandcamp_item_id.txt'
 
     def __init__(self, media_dir):
@@ -69,11 +72,25 @@ class LocalMedia:
             return True
         item_name = (local_path.parent.name, local_path.name)
         if item_name in self.item_names:
-            log.info(f'Detected album at "{local_path}" but with an item ID mismatch '
-                     f'({self.ITEM_INDEX_FILENAME} file does not contain {item.item_id}), '
-                     f'you may want to check this item is correctly downloaded')
+            if os.path.exists(local_path / self.ITEM_INDEX_FILENAME):
+                log.info(f'Detected album at "{local_path}" but with an item ID mismatch '
+                         f'({self.ITEM_INDEX_FILENAME} file does not contain {item.item_id}). '
+                         f'You may want to check this item is correctly downloaded')
+            else:
+                log.info(f'Detected album at "{local_path}" but there was no corresponding '
+                         f'id in the ignores.txt file. '
+                         f'You may want to check this item is correctly downloaded')
             return True
         return False
+
+    def delete_id_file(self, local_path):
+        """
+        Removes the bandcamp_item_id.txt file.
+        Only call this if the item is marked as downloaded elsewhere.
+        """
+        path = local_path / self.ITEM_INDEX_FILENAME
+        if os.path.exists(path):
+            os.remove(path)
 
     def get_path_for_purchase(self, item):
         return self.media_dir / self._clean_path(item.band_name) / self._clean_path(item.item_title)
