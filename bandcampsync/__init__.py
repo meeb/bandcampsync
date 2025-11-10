@@ -87,7 +87,6 @@ def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_pa
                                 move_file(file_path, file_dest)
                             except Exception as e:
                                 log.error(f'Failed to move {file_path} to {file_dest}: {e}')
-                    local_media.write_bandcamp_id(item, local_path)
                 elif item.item_type == 'track':
                     slug = item.item_title
                     if item.url_hints and isinstance(item.url_hints, dict):
@@ -99,11 +98,12 @@ def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_pa
                         copy_file(temp_file_path, file_dest)
                     except Exception as e:
                         log.error(f'Failed to copy {file_path} to {file_dest}: {e}')
-                    local_media.write_bandcamp_id(item, local_path)
-                    new_items_downloaded = True
                 else:
                     log.error(f'Downloaded file for "{item.band_name} / {item.item_title}" (id:{item.item_id}) '
                               f'at "{temp_file_path}" is not a zip archive or a single track, skipping')
+                    continue
+                local_media.write_bandcamp_id(item, local_path)
+                new_items_downloaded = True
 
     if new_items_downloaded:
         log.info(f'New media items downloaded')
