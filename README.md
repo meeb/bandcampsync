@@ -24,7 +24,7 @@ The media directory will have the following format:
 /media/
 /media/Artist Name
 /media/Artist Name/Album Name
-/media/Artist Name/Album Name/bandcamp_item_id.txt
+/media/Artist Name/Album Name/bandcamp_item_id.txt (if no ignores file provided)
 /media/Artist Name/Album Name/cover.jpg
 /media/Artist Name/Album Name/Track Name.flac
 ```
@@ -33,9 +33,10 @@ The directory format of `artist_name`/`item_title` is not editable.
 
 `bandcamp_item_id.txt` is a special file created in each item directory and
 it contains the Bandcamp item ID as an integer. This file is used by BandcampSync
-to track which media items have already been downloaded. You can rename the
-artist or album directories, but do not delete the `bandcamp_item_id.txt` file
-or the media item will be redownloaded the next time `bandcampsync` is run.
+to track which media items have already been downloaded, when an ignores file is
+not being used. You can rename the artist or album directories, but do not delete
+the `bandcamp_item_id.txt` file or the media item will be redownloaded the next
+time `bandcampsync` is run.
 
 The `bandcamp_item_id.txt` file method of tracking what items are synchronised
 also means you can also use media managers such as Lidarr to rename artist,
