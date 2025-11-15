@@ -105,9 +105,10 @@ In the above example you would save your cookies data into a file called
 BandcampSync will look for this location when it starts up.
 
 In the `config` directory you will find an `ignores.txt` file. You may edit the
-file to specify which items not to download. The format is one bandcamp id per
-line (same as `bandcamp_item_id.txt` files), optionally followed by a comment
-that starts with `#`. For example:
+file to specify which items not to download. The downloader automatically
+appends ids of the downloaded items during each run. The format is one bandcamp
+id per line (same as `bandcamp_item_id.txt` files), optionally followed by a
+comment that starts with `#`. For example:
 
 ```
 1546934218  # Chrome Sparks / Sparks EP
@@ -185,8 +186,6 @@ $ bandcampsync -c cookies.txt -d /path/to/music
 You can use `-t` or `--temp-dir` to set the temporary download directory used.
 You can use `-i` or `--ignore` to bypass artists that have data issues that
 your OS can not handle.
-You can use `-I` or `--ignore-file` to specify the path to a file containing
-bandcamp ids of each item to skip (see above).
 
 See `-h` or `--help` for the full list of command line options.
 
@@ -196,6 +195,16 @@ $ bandcampsync --cookies cookies.txt --directory /path/to/music --ignore "badban
 
 `--ignore` supports multiple strings space seperated strings, for example
 `--ignore "band1 band2 band3"`.
+
+
+You can use `-I` or `--ignore-file` to specify the path to a file containing
+bandcamp ids of each item to skip (see above).
+
+If you do, the items downloaded will be appended to the file, so that the next
+time you run the script those items will not be re-downloaded.
+This means you can use media managers such as Lidarr to rename artist, album
+and track names automatically, rename the directory, or even move the items out
+of the download directory without issues.
 
 
 You can notify an an external HTTP server when new items have been loaded with `-n` or

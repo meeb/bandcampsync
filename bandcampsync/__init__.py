@@ -99,6 +99,7 @@ def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_fi
                               f'at "{temp_file_path}" is not a zip archive or a single track, skipping')
                     continue
                 local_media.write_bandcamp_id(item, local_path)
+                ignores.add(item)
                 new_items_downloaded = True
 
     if new_items_downloaded:
