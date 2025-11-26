@@ -21,6 +21,8 @@ if __name__ == '__main__':
         help='Path to the cookies file')
     parser.add_argument('-d', '--directory', required=True,
         help='Path to the directory to download media to')
+    parser.add_argument('-I', '--ignore-file', default='',
+        help='Path to the ignore file')
     parser.add_argument('-i', '--ignore', default='',
         help='A space-delimited list of patterns matching artists to bypass')
     parser.add_argument('-f', '--format', default='flac',
@@ -34,6 +36,7 @@ if __name__ == '__main__':
         print(f'BandcampSync version: {version}', file=sys.stdout)
         sys.exit(0)
     cookies_path = Path(args.cookies).resolve()
+    ign_file_path = Path(args.ignore_file).resolve() if args.ignore_file else None
     dir_path = Path(args.directory).resolve()
     ign_patterns = args.ignore
     media_format = args.format
@@ -59,5 +62,5 @@ if __name__ == '__main__':
     with open(cookies_path, 'rt') as f:
         cookies = f.read().strip()
     log.info(f'Loaded cookies from "{cookies_path}"')
-    do_sync(cookies_path, cookies, dir_path, media_format, temp_dir, ign_patterns, notify_url)
+    do_sync(cookies_path, cookies, dir_path, media_format, temp_dir, ign_file_path, ign_patterns, notify_url)
     log.info(f'Done')

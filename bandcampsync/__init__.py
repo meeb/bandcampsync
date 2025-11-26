@@ -4,6 +4,7 @@ from tempfile import NamedTemporaryFile, TemporaryDirectory
 from .config import VERSION as version
 from .logger import get_logger
 from .bandcamp import Bandcamp, BandcampError
+from .ignores import Ignores
 from .media import LocalMedia
 from .notify import NotifyURL
 from .download import (download_file, unzip_file, move_file, copy_file,
@@ -14,8 +15,9 @@ from .download import (download_file, unzip_file, move_file, copy_file,
 log = logger.get_logger('sync')
 
 
-def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_patterns, notify_url):
+def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_file_path, ign_patterns, notify_url):
 
+    ignores = Ignores(ign_file_path=ign_file_path, ign_patterns=ign_patterns)
     local_media = LocalMedia(media_dir=dir_path)
     bandcamp = Bandcamp(cookies=cookies)
     bandcamp.verify_authentication()
@@ -29,13 +31,7 @@ def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_pa
     for item in bandcamp.purchases:
 
         # Check if any ignore pattern matches the band name
-        ignored = False
-        for pattern in ign_patterns.split():
-            if pattern.lower() in item.band_name.lower():
-                log.warning(f'Skipping item due to ignore pattern: "{pattern}" found in "{item.band_name}"')
-                ignored = True
-                break
-        if ignored:
+        if ignores.is_ignored(item):
             continue
 
         local_path = local_media.get_path_for_purchase(item)

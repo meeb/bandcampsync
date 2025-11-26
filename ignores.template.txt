@@ -1,0 +1,11 @@
+# This file allows you to exclude releases from downloads.
+#
+# Add one bandcamp item id per line, optionally followed by a comment.
+# For example:
+# 1546934218  # Chrome Sparks / Sparks EP
+# 1418240212  # Chrome Sparks / Goddess EP
+#
+# To get an item id, you can click on Share/Embed on the release page, click
+# "Embed this album", choose an embed size, and within the embed code, look for
+# the album=<...> portion of the link.
+
