@@ -23,6 +23,7 @@ def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_fi
     bandcamp.verify_authentication()
     bandcamp.load_purchases()
     new_items_downloaded = False
+    show_id_file_warning = False
     if notify_url:
         notifier = NotifyURL(notify_url)
     else:
@@ -30,11 +31,14 @@ def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_fi
 
     for item in bandcamp.purchases:
 
+        local_path = local_media.get_path_for_purchase(item)
+
         # Check if any ignore pattern matches the band name
         if ignores.is_ignored(item):
+            if not show_id_file_warning and local_media.is_locally_downloaded(item, local_path):
+                show_id_file_warning = True
             continue
 
-        local_path = local_media.get_path_for_purchase(item)
         if item.is_preorder == True:
             log.info(f'Item is a preorder, skipping: "{item.band_name} / {item.item_title}" '
                      f'(id:{item.item_id})')
@@ -98,12 +102,35 @@ def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_fi
                     log.error(f'Downloaded file for "{item.band_name} / {item.item_title}" (id:{item.item_id}) '
                               f'at "{temp_file_path}" is not a zip archive or a single track, skipping')
                     continue
-                local_media.write_bandcamp_id(item, local_path)
+
+                if ign_file_path:
+                    # We assume that if you use an ignore file once, you'll
+                    # keep using it forever (e.g. Docker).
+                    # In case you don't, you'll get warnings for missing id file
+                    # on the items downloaded in the current session.
+                    ignores.add(item)
+                else:
+                    local_media.write_bandcamp_id(item, local_path)
                 new_items_downloaded = True
 
     if new_items_downloaded:
         log.info(f'New media items downloaded')
         if notifier:
             notifier.notify()
+
+    if show_id_file_warning:
+        log.warning(f'The {ign_file_path} file is tracking items already downloaded, '
+                    f'but some directories are still using bandcamp_item_id.txt files. '
+                    f'If you want to get rid of the id files, run the following script '
+                    f'inside the downloads directory, then append the content of the '
+                    f'new ignores.txt file to the ignores file in your config directory:\n'
+                     '  find . -name "bandcamp_item_id.txt" \\\n'
+                     '    | while read -r id_file\n'
+                     '      do \\\n'
+                     '        comment="$(echo "$id_file" \\\n'
+                     '            | sed -r -e "s%./([^/]+)/([^/]+)/bandcamp_item_id.txt%\\1 / \\2%")"\n'
+                     '        echo "$(cat "$id_file")  # $comment"\n'
+                     '        rm "$id_file"\n'
+                     '      done >> ignores.txt\n')
 
     return True
