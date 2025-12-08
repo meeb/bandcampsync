@@ -2,7 +2,6 @@ import math
 import shutil
 from zipfile import ZipFile
 from curl_cffi import requests
-from .config import USER_AGENT
 from .logger import get_logger
 
 
@@ -38,8 +37,7 @@ def download_file(url, target, mode='wb', chunk_size=8192, logevery=10, disallow
     text = True if 't' in mode else False
     data_streamed = 0
     last_log = 0
-    headers = {'User-Agent': USER_AGENT}
-    r = requests.get(url, stream=True, headers=headers)
+    r = requests.get(url, stream=True)
     try:
         #r.raise_for_status()
         if r.status_code != 200:

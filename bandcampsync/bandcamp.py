@@ -6,7 +6,6 @@ from html import unescape as html_unescape
 from urllib.parse import urlsplit, urlunsplit
 from bs4 import BeautifulSoup
 from curl_cffi import requests
-from .config import USER_AGENT
 from .download import mask_sig
 from .logger import get_logger
 
@@ -91,7 +90,6 @@ class Bandcamp:
         return cookies
 
     def _request(self, method, url, data=None, json_data=None, is_json=False, as_raw=False):
-        headers = {'User-Agent': USER_AGENT}
         try:
             # The debug logs do not mask the URL which may be a security issue if you run
             # with level=logging.DEBUG
@@ -99,7 +97,6 @@ class Bandcamp:
             response = self.session.request(
                 method,
                 url,
-                headers=headers,
                 cookies=self._plain_cookies(),
                 data=data,
                 json=json_data
