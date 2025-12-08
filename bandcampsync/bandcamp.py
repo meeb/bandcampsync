@@ -5,8 +5,7 @@ from http.cookies import SimpleCookie
 from html import unescape as html_unescape
 from urllib.parse import urlsplit, urlunsplit
 from bs4 import BeautifulSoup
-import requests
-from .config import USER_AGENT
+from curl_cffi import requests
 from .download import mask_sig
 from .logger import get_logger
 
@@ -42,7 +41,7 @@ class Bandcamp:
         identity_snip = identity.value[:20]
         log.info(f'Located Bandcamp identity in cookies: {identity_snip}...')
         # Create a requests session and map our SimpleCookie to it
-        self.session = requests.Session()
+        self.session = requests.Session(impersonate='chrome')
         for cookie_name, morsel in self.cookies.items():
             self.session.cookies.set(cookie_name, morsel.value)
 
@@ -91,7 +90,6 @@ class Bandcamp:
         return cookies
 
     def _request(self, method, url, data=None, json_data=None, is_json=False, as_raw=False):
-        headers = {'User-Agent': USER_AGENT}
         try:
             # The debug logs do not mask the URL which may be a security issue if you run
             # with level=logging.DEBUG
@@ -99,7 +97,6 @@ class Bandcamp:
             response = self.session.request(
                 method,
                 url,
-                headers=headers,
                 cookies=self._plain_cookies(),
                 data=data,
                 json=json_data
