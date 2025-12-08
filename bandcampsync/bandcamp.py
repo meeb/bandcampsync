@@ -5,7 +5,7 @@ from http.cookies import SimpleCookie
 from html import unescape as html_unescape
 from urllib.parse import urlsplit, urlunsplit
 from bs4 import BeautifulSoup
-import requests
+from curl_cffi import requests
 from .config import USER_AGENT
 from .download import mask_sig
 from .logger import get_logger

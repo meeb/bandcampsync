@@ -1,4 +1,4 @@
-import requests
+from curl_cffi import requests
 from .config import INTERNAL_USER_AGENT
 from .logger import get_logger
 
