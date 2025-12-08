@@ -41,7 +41,7 @@ class Bandcamp:
         identity_snip = identity.value[:20]
         log.info(f'Located Bandcamp identity in cookies: {identity_snip}...')
         # Create a requests session and map our SimpleCookie to it
-        self.session = requests.Session()
+        self.session = requests.Session(impersonate='chrome')
         for cookie_name, morsel in self.cookies.items():
             self.session.cookies.set(cookie_name, morsel.value)
 

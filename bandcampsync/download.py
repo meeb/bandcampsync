@@ -37,7 +37,7 @@ def download_file(url, target, mode='wb', chunk_size=8192, logevery=10, disallow
     text = True if 't' in mode else False
     data_streamed = 0
     last_log = 0
-    r = requests.get(url, stream=True)
+    r = requests.get(url, stream=True, impersonate='chrome')
     try:
         #r.raise_for_status()
         if r.status_code != 200:
