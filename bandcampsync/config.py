@@ -1,2 +1,2 @@
-VERSION = "0.5.4"
-INTERNAL_USER_AGENT = "bandcampsync/" + VERSION
+VERSION = "0.6.0"
+INTERNAL_USER_AGENT = f"bandcampsync/{VERSION}"
