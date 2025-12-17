@@ -1,7 +1,7 @@
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 ARG REPOSITORY="meeb/bandcampsync"
-ARG VERSION="v0.5.4"
+ARG VERSION="v0.6.0"
 
 ENV DEBIAN_FRONTEND="noninteractive" \
   HOME="/root" \
