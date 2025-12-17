@@ -42,7 +42,7 @@ class Bandcamp:
         identity_snip = identity.value[:20]
         log.info(f"Located Bandcamp identity in cookies: {identity_snip}...")
         # Create a requests session and map our SimpleCookie to it
-        self.session = requests.Session(impersonate='chrome')
+        self.session = requests.Session(impersonate="chrome")
         for cookie_name, morsel in self.cookies.items():
             self.session.cookies.set(cookie_name, morsel.value)
 
@@ -92,14 +92,9 @@ class Bandcamp:
             cookies[cookie_value.key] = cookie_value.value
         return cookies
 
-<<<<<<< HEAD
     def _request(
         self, method, url, data=None, json_data=None, is_json=False, as_raw=False
     ):
-        headers = {"User-Agent": USER_AGENT}
-=======
-    def _request(self, method, url, data=None, json_data=None, is_json=False, as_raw=False):
->>>>>>> 8186d853aaa6d7f9bb9c3ffd0366193b4d2feb6d
         try:
             # The debug logs do not mask the URL which may be a security issue if you run
             # with level=logging.DEBUG

@@ -44,15 +44,9 @@ def download_file(
     text = True if "t" in mode else False
     data_streamed = 0
     last_log = 0
-<<<<<<< HEAD
-    headers = {"User-Agent": USER_AGENT}
-    with requests.get(url, stream=True, headers=headers) as r:
-        # r.raise_for_status()
-=======
-    r = requests.get(url, stream=True, impersonate='chrome')
+    r = requests.get(url, stream=True, impersonate="chrome")
     try:
-        #r.raise_for_status()
->>>>>>> 8186d853aaa6d7f9bb9c3ffd0366193b4d2feb6d
+        # r.raise_for_status()
         if r.status_code != 200:
             raise DownloadBadStatusCode(f"Got non-200 status code: {r.status_code}")
         try:

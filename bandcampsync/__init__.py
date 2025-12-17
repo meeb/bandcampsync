@@ -22,21 +22,17 @@ from .download import (
 log = logger.get_logger("sync")
 
 
-<<<<<<< HEAD
 def do_sync(
     cookies_path,
     cookies,
     dir_path,
     media_format,
     temp_dir_root,
+    ign_file_path,
     ign_patterns,
     notify_url,
 ):
-=======
-def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_file_path, ign_patterns, notify_url):
-
     ignores = Ignores(ign_file_path=ign_file_path, ign_patterns=ign_patterns)
->>>>>>> 8186d853aaa6d7f9bb9c3ffd0366193b4d2feb6d
     local_media = LocalMedia(media_dir=dir_path)
     bandcamp = Bandcamp(cookies=cookies)
     bandcamp.verify_authentication()
@@ -49,26 +45,14 @@ def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_fi
         notifier = None
 
     for item in bandcamp.purchases:
-<<<<<<< HEAD
-        # Check if any ignore pattern matches the band name
-        ignored = False
-        for pattern in ign_patterns.split():
-            if pattern.lower() in item.band_name.lower():
-                log.warning(
-                    f'Skipping item due to ignore pattern: "{pattern}" found in "{item.band_name}"'
-                )
-                ignored = True
-                break
-        if ignored:
-=======
-
         local_path = local_media.get_path_for_purchase(item)
 
         # Check if any ignore pattern matches the band name
         if ignores.is_ignored(item):
-            if not show_id_file_warning and local_media.is_locally_downloaded(item, local_path):
+            if not show_id_file_warning and local_media.is_locally_downloaded(
+                item, local_path
+            ):
                 show_id_file_warning = True
->>>>>>> 8186d853aaa6d7f9bb9c3ffd0366193b4d2feb6d
             continue
 
         if item.is_preorder == True:
@@ -144,16 +128,10 @@ def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_fi
                             try:
                                 move_file(file_path, file_dest)
                             except Exception as e:
-<<<<<<< HEAD
                                 log.error(
                                     f"Failed to move {file_path} to {file_dest}: {e}"
                                 )
-                    local_media.write_bandcamp_id(item, local_path)
                 elif item.item_type == "track":
-=======
-                                log.error(f'Failed to move {file_path} to {file_dest}: {e}')
-                elif item.item_type == 'track':
->>>>>>> 8186d853aaa6d7f9bb9c3ffd0366193b4d2feb6d
                     slug = item.item_title
                     if item.url_hints and isinstance(item.url_hints, dict):
                         slug = item.url_hints.get("slug", item.item_title)
@@ -167,20 +145,12 @@ def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_fi
                     try:
                         copy_file(temp_file_path, file_dest)
                     except Exception as e:
-<<<<<<< HEAD
                         log.error(f"Failed to copy {file_path} to {file_dest}: {e}")
-                    local_media.write_bandcamp_id(item, local_path)
-                    new_items_downloaded = True
                 else:
                     log.error(
                         f'Downloaded file for "{item.band_name} / {item.item_title}" (id:{item.item_id}) '
                         f'at "{temp_file_path}" is not a zip archive or a single track, skipping'
                     )
-=======
-                        log.error(f'Failed to copy {file_path} to {file_dest}: {e}')
-                else:
-                    log.error(f'Downloaded file for "{item.band_name} / {item.item_title}" (id:{item.item_id}) '
-                              f'at "{temp_file_path}" is not a zip archive or a single track, skipping')
                     continue
 
                 if ign_file_path:
@@ -192,7 +162,6 @@ def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_fi
                 else:
                     local_media.write_bandcamp_id(item, local_path)
                 new_items_downloaded = True
->>>>>>> 8186d853aaa6d7f9bb9c3ffd0366193b4d2feb6d
 
     if new_items_downloaded:
         log.info(f"New media items downloaded")
@@ -200,18 +169,20 @@ def do_sync(cookies_path, cookies, dir_path, media_format, temp_dir_root, ign_fi
             notifier.notify()
 
     if show_id_file_warning:
-        log.warning(f'The {ign_file_path} file is tracking items already downloaded, '
-                    f'but some directories are still using bandcamp_item_id.txt files. '
-                    f'If you want to get rid of the id files, run the following script '
-                    f'inside the downloads directory, then append the content of the '
-                    f'new ignores.txt file to the ignores file in your config directory:\n'
-                     '  find . -name "bandcamp_item_id.txt" \\\n'
-                     '    | while read -r id_file\n'
-                     '      do \\\n'
-                     '        comment="$(echo "$id_file" \\\n'
-                     '            | sed -r -e "s%./([^/]+)/([^/]+)/bandcamp_item_id.txt%\\1 / \\2%")"\n'
-                     '        echo "$(cat "$id_file")  # $comment"\n'
-                     '        rm "$id_file"\n'
-                     '      done >> ignores.txt\n')
+        log.warning(
+            f"The {ign_file_path} file is tracking items already downloaded, "
+            f"but some directories are still using bandcamp_item_id.txt files. "
+            f"If you want to get rid of the id files, run the following script "
+            f"inside the downloads directory, then append the content of the "
+            f"new ignores.txt file to the ignores file in your config directory:\n"
+            '  find . -name "bandcamp_item_id.txt" \\\n'
+            "    | while read -r id_file\n"
+            "      do \\\n"
+            '        comment="$(echo "$id_file" \\\n'
+            '            | sed -r -e "s%./([^/]+)/([^/]+)/bandcamp_item_id.txt%\\1 / \\2%")"\n'
+            '        echo "$(cat "$id_file")  # $comment"\n'
+            '        rm "$id_file"\n'
+            "      done >> ignores.txt\n"
+        )
 
     return True
