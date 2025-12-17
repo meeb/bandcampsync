@@ -11,6 +11,13 @@ runcontainer:
 	$(docker) run --rm --name $(name) --env-file dev.env -ti -v ./docker-config:/config -v ./docker-downloads:/downloads $(image)
 
 
+run:
+	mkdir -p ./docker-downloads
+	cp ./bin/bandcampsync ./bcs
+	uv run ./bcs -c cookies.txt -d docker-downloads
+	rm ./bcs
+
+
 lint:
 	uvx ruff check
 
