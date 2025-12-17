@@ -1,8 +1,7 @@
 import math
 import shutil
 from zipfile import ZipFile
-import requests
-from .config import USER_AGENT
+from curl_cffi import requests
 from .logger import get_logger
 
 
@@ -45,9 +44,15 @@ def download_file(
     text = True if "t" in mode else False
     data_streamed = 0
     last_log = 0
+<<<<<<< HEAD
     headers = {"User-Agent": USER_AGENT}
     with requests.get(url, stream=True, headers=headers) as r:
         # r.raise_for_status()
+=======
+    r = requests.get(url, stream=True, impersonate='chrome')
+    try:
+        #r.raise_for_status()
+>>>>>>> 8186d853aaa6d7f9bb9c3ffd0366193b4d2feb6d
         if r.status_code != 200:
             raise DownloadBadStatusCode(f"Got non-200 status code: {r.status_code}")
         try:
@@ -74,6 +79,8 @@ def download_file(
                 if percent_complete % logevery == 0 and percent_complete > last_log:
                     log.info(f"Downloading {mask_sig(url)}: {percent_complete}%")
                     last_log = percent_complete
+    finally:
+        r.close()
     return True
 
 

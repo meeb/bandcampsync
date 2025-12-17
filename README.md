@@ -2,7 +2,7 @@
 
 BandcampSync is a Python module and command line script (also packed in
 a Docker container) which synchronises media purchased on a Bandcamp
-(http://bandcamp.com/) account with a local directory.
+(https://bandcamp.com/) account with a local directory.
 
 You may use this to download media you have purchased from Bandcamp to a
 local media server, such as Plex or Jellyfin.
@@ -24,7 +24,7 @@ The media directory will have the following format:
 /media/
 /media/Artist Name
 /media/Artist Name/Album Name
-/media/Artist Name/Album Name/bandcamp_item_id.txt
+/media/Artist Name/Album Name/bandcamp_item_id.txt (if no ignores file provided)
 /media/Artist Name/Album Name/cover.jpg
 /media/Artist Name/Album Name/Track Name.flac
 ```
@@ -33,9 +33,10 @@ The directory format of `artist_name`/`item_title` is not editable.
 
 `bandcamp_item_id.txt` is a special file created in each item directory and
 it contains the Bandcamp item ID as an integer. This file is used by BandcampSync
-to track which media items have already been downloaded. You can rename the
-artist or album directories, but do not delete the `bandcamp_item_id.txt` file
-or the media item will be redownloaded the next time `bandcampsync` is run.
+to track which media items have already been downloaded, when an ignores file is
+not being used. You can rename the artist or album directories, but do not delete
+the `bandcamp_item_id.txt` file or the media item will be redownloaded the next
+time `bandcampsync` is run.
 
 The `bandcamp_item_id.txt` file method of tracking what items are synchronised
 also means you can also use media managers such as Lidarr to rename artist,
@@ -103,6 +104,17 @@ services:
 In the above example you would save your cookies data into a file called
 `cookies.txt` and save it at `/some/directory/bandcampsync-config/cookies.txt`.
 BandcampSync will look for this location when it starts up.
+
+In the `config` directory you will find an `ignores.txt` file. You may edit the
+file to specify which items not to download. The downloader automatically
+appends ids of the downloaded items during each run. The format is one bandcamp
+id per line (same as `bandcamp_item_id.txt` files), optionally followed by a
+comment that starts with `#`. For example:
+
+```
+1546934218  # Chrome Sparks / Sparks EP
+1418240212  # Chrome Sparks / Goddess EP
+```
 
 The `RUN_DAILY_AT` environment variable is the hour the `bandcampsync` script
 will run at. In this example, 3am local time. After running the container will
@@ -172,11 +184,11 @@ or in shorthand:
 $ bandcampsync -c cookies.txt -d /path/to/music
 ```
 
-You can also use `-t` or `--temp-dir` to set the temporary download directory used. See
-`-h` or `--help` for the full list of command line options.
-
-You can also use `-i` or `--ignore` to bypass artists that have data issues that
+You can use `-t` or `--temp-dir` to set the temporary download directory used.
+You can use `-i` or `--ignore` to bypass artists that have data issues that
 your OS can not handle.
+
+See `-h` or `--help` for the full list of command line options.
 
 ```bash
 $ bandcampsync --cookies cookies.txt --directory /path/to/music --ignore "badband"
@@ -184,6 +196,16 @@ $ bandcampsync --cookies cookies.txt --directory /path/to/music --ignore "badban
 
 `--ignore` supports multiple strings space seperated strings, for example
 `--ignore "band1 band2 band3"`.
+
+
+You can use `-I` or `--ignore-file` to specify the path to a file containing
+bandcamp ids of each item to skip (see above).
+
+If you do, the items downloaded will be appended to the file, so that the next
+time you run the script those items will not be re-downloaded.
+This means you can use media managers such as Lidarr to rename artist, album
+and track names automatically, rename the directory, or even move the items out
+of the download directory without issues.
 
 
 You can notify an an external HTTP server when new items have been loaded with `-n` or
@@ -221,7 +243,7 @@ another format with the `--format` argument. Common Bandcamp download formats ar
 | --------------- | --------------------------------------------------------------- |
 | `mp3-v0`        | Variable bitrate MP3. Small file sizes. OK quality.             |
 | `mp3-320`       | High quality MP3. Medium file sizes. Good quality.              |
-| `flac`          | Losses audio. Large file sizes. Original Quality.               |
+| `flac`          | Lossless audio. Large file sizes. Original Quality.             |
 | `aac-hi`        | Apple variable bitrate format. Small file sizes. OK quality.    |
 | `aiff-lossless` | Uncompressed audio format. Biggest file size. Original quality. |
 | `vorbis`        | Open source lossy format. Small file sizes. OK quality.         |

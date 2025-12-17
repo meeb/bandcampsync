@@ -4,6 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-requests = "*"
 beautifulsoup4 = "*"
 html5lib = "*"
+curl-cffi = "*"
+
+[dev-packages]
