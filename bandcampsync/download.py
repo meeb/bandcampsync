@@ -83,7 +83,7 @@ def is_zip_file(file_path):
         with ZipFile(file_path) as z:
             z.infolist()
         return True
-    except Exception as e:
+    except Exception:
         return False
 
 

@@ -32,7 +32,7 @@ class Ignores:
 
     def parse_ignores(self):
         if not self.ign_file_path:
-            log.info(f"No ignore file specified")
+            log.info("No ignore file specified")
             return
 
         # If a file path is specified, but there is no such file (e.g. first

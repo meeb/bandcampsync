@@ -35,9 +35,9 @@ class Bandcamp:
         identity = self.cookies.get("identity")
         if not identity:
             raise BandcampError(
-                f"Cookie data does not contain an identity value, make sure your "
-                f"cookies.txt file is valid and you copied it from an "
-                f"authenticated browser"
+                "Cookie data does not contain an identity value, make sure your "
+                "cookies.txt file is valid and you copied it from an "
+                "authenticated browser"
             )
         identity_snip = identity.value[:20]
         log.info(f"Located Bandcamp identity in cookies: {identity_snip}...")
@@ -126,15 +126,15 @@ class Bandcamp:
         pagedata_tag = soup.find("div", id=id_name)
         if not pagedata_tag:
             raise BandcampError(
-                f'Failed to locate <div id="HomepageApp"> in index HTML, this may '
-                f"be an authentication issue or it may be that bandcamp.com has "
-                f"updated their website and this tool needs to be updated."
+                'Failed to locate <div id="HomepageApp"> in index HTML, this may '
+                "be an authentication issue or it may be that bandcamp.com has "
+                "updated their website and this tool needs to be updated."
             )
         encoded_pagedata = pagedata_tag.attrs.get("data-blob")
         if not encoded_pagedata:
             raise BandcampError(
-                f"Failed to extract page data, check your cookies are from an ",
-                f"authenticated session",
+                "Failed to extract page data, check your cookies are from an ",
+                "authenticated session",
             )
         pagedata_str = html_unescape(encoded_pagedata)
         try:
@@ -179,26 +179,26 @@ class Bandcamp:
             pagecontext = pagedata["pageContext"]
         except KeyError as e:
             raise BandcampError(
-                f'Failed to parse pagedata JSON, does not contain an "pageContext" key'
+                'Failed to parse pagedata JSON, does not contain an "pageContext" key'
             ) from e
         try:
             identity = pagecontext["identity"]
         except KeyError as e:
             raise BandcampError(
-                f'Failed to parse pagecontext JSON, does not contain an "identity" key'
+                'Failed to parse pagecontext JSON, does not contain an "identity" key'
             ) from e
         if not isinstance(identity, dict):
             raise BandcampError(
-                f'Failed to parse pagedata JSON, "identity" is not '
-                f"a dictionary. Check your cookies.txt file is valid "
-                f"and up to date"
+                'Failed to parse pagedata JSON, "identity" is not '
+                "a dictionary. Check your cookies.txt file is valid "
+                "and up to date"
             )
         try:
             self.user_id = identity["fanId"]
             self.user_verified = identity["isFanVerified"]
         except (KeyError, TypeError) as e:
             raise BandcampError(
-                f'Failed to parse pagedata JSON, "identity.fan" seems invalid: {fan}'
+                f'Failed to parse pagedata JSON, "identity.fan" seems invalid: {identity}'
             ) from e
         self.is_authenticated = self.user_id > 0
         log.info(
@@ -213,7 +213,7 @@ class Bandcamp:
         """
         if not self.is_authenticated:
             raise BandcampError(
-                f"Authentication not verified, call load_pagedata() first"
+                "Authentication not verified, call load_pagedata() first"
             )
         log.info(f"Loading purchases for user id: {self.user_id}")
         self.purchases = []
@@ -232,25 +232,25 @@ class Bandcamp:
             data = self._request("POST", url, json_data=data, is_json=True)
             try:
                 items = data["items"]
-            except KeyError as e:
+            except KeyError:
                 raise BandcampError(
-                    f"Failed to extract items from collection results page"
+                    "Failed to extract items from collection results page"
                 )
             if not items:
-                log.info(f"Reached end of items")
+                log.info("Reached end of items")
                 break
             try:
                 redownload_urls = data["redownload_urls"]
-            except KeyError as e:
+            except KeyError:
                 raise BandcampError(
-                    f"Failed to extract redownload_urls from collection results page"
+                    "Failed to extract redownload_urls from collection results page"
                 )
             for item_data in items:
                 try:
                     band_name = item_data["band_name"]
                 except KeyError:
                     log.error(
-                        f"Failed to locate band name in item metadata, skipping item..."
+                        "Failed to locate band name in item metadata, skipping item..."
                     )
                     continue
                 try:
@@ -284,29 +284,29 @@ class Bandcamp:
         pagedata = self._extract_pagedata_from_soup(soup)
         download_url = None
         if not pagedata:
-            raise ValueError(f'Either "url" or "pagedata" must be supplied')
+            raise ValueError('Either "url" or "pagedata" must be supplied')
         try:
             digital_items = pagedata["digital_items"]
         except KeyError as e:
             raise BandcampError(
-                f"Failed to parse pagedata JSON, does not contain an "
-                f'"digital_items" key'
+                "Failed to parse pagedata JSON, does not contain an "
+                '"digital_items" key'
             ) from e
         for digital_item in digital_items:
             try:
                 digital_item_id = digital_item["item_id"]
             except KeyError as e:
                 raise BandcampError(
-                    f"Failed to parse pagedata JSON, does not contain an "
-                    f'"digital_items[].art_id" key'
+                    "Failed to parse pagedata JSON, does not contain an "
+                    '"digital_items[].art_id" key'
                 ) from e
             if digital_item_id == item.item_id:
                 try:
                     downloads = digital_item["downloads"]
                 except KeyError as e:
                     raise BandcampError(
-                        f"Failed to parse pagedata JSON, does not contain an "
-                        f'"digital_items.downloads" key'
+                        "Failed to parse pagedata JSON, does not contain an "
+                        '"digital_items.downloads" key'
                     ) from e
                 try:
                     download_format = downloads[encoding]
@@ -320,8 +320,8 @@ class Bandcamp:
                     download_url = download_format["url"]
                 except KeyError as e:
                     raise BandcampError(
-                        f"Failed to parse pagedata JSON, does not contain an "
-                        f'"digital_items.downloads.[encoding].url" key'
+                        "Failed to parse pagedata JSON, does not contain an "
+                        '"digital_items.downloads.[encoding].url" key'
                     ) from e
                 return download_url
         return False

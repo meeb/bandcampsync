@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from .config import VERSION as version
@@ -19,7 +18,10 @@ from .download import (
 )
 
 
-log = logger.get_logger("sync")
+__all__ = ["version", "do_sync"]
+
+
+log = get_logger("sync")
 
 
 def do_sync(
@@ -55,7 +57,7 @@ def do_sync(
                 show_id_file_warning = True
             continue
 
-        if item.is_preorder == True:
+        if item.is_preorder:
             log.info(
                 f'Item is a preorder, skipping: "{item.band_name} / {item.item_title}" '
                 f"(id:{item.item_id})"
@@ -164,7 +166,7 @@ def do_sync(
                 new_items_downloaded = True
 
     if new_items_downloaded:
-        log.info(f"New media items downloaded")
+        log.info("New media items downloaded")
         if notifier:
             notifier.notify()
 
