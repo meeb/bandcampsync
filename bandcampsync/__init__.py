@@ -170,11 +170,12 @@ def do_sync(
 
     if show_id_file_warning:
         log.warning(
-            f"The {ign_file_path} file is tracking items already downloaded, "
-            f"but some directories are still using bandcamp_item_id.txt files. "
-            f"If you want to get rid of the id files, run the following script "
-            f"inside the downloads directory, then append the content of the "
-            f"new ignores.txt file to the ignores file in your config directory:\n"
+            f"The {ign_file_path} file is tracking already downloaded items, "
+            f"but some directories are using bandcamp_item_id.txt files. "
+            f"If you want to get migrate from ID files to using the {ign_file_path} file, "
+            f"run the following script inside the downloads directory, then append the "
+            f"content of the new ignores.txt file to the ignores file in your "
+            f"config directory:\n"
             '  find . -name "bandcamp_item_id.txt" \\\n'
             "    | while read -r id_file\n"
             "      do \\\n"
