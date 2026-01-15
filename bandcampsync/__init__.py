@@ -14,6 +14,8 @@ def do_sync(
     ign_patterns,
     notify_url,
     concurrency=1,
+    max_retries=3,
+    retry_wait=5,
 ):
     Syncer(
         cookies,
@@ -24,6 +26,8 @@ def do_sync(
         ign_patterns,
         notify_url,
         concurrency,
+        max_retries,
+        retry_wait,
     )
 
     return True

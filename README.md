@@ -135,6 +135,12 @@ directory is used as the temporary download location.
 `NOTIFY_URL` can be set to a URL to send an HTTP GET request to when new
 items have been loaded, same as the `--notify-url` CLI argument.
 
+`MAX_RETRIES` can be set to the maximum number of download retry attempts, defaults to `3`.
+
+`RETRY_WAIT` can be set to the number of seconds to wait between download retries, defaults to `5`.
+
+`CONCURRENCY` can be set to the number of concurrent downloads, defaults to `1`.
+
 
 ## Configuration
 
@@ -210,6 +216,10 @@ of the download directory without issues.
 
 You can notify an an external HTTP server when new items have been loaded with `-n` or
 `--notify-url`.
+
+You can set the maximum number of download retry attempts with `--max-retries` (defaults to `3`) and the number of seconds to wait between retries with `--retry-wait` (defaults to `5`).
+
+You can set the number of concurrent downloads with `-j` or `--concurrency` (defaults to `1`).
 
 ```bash
 $ bandcampsync ... --notify-url "http://some.service.local/some-uri"
