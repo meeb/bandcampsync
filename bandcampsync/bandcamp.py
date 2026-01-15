@@ -289,8 +289,7 @@ class Bandcamp:
             digital_items = pagedata["digital_items"]
         except KeyError as e:
             raise BandcampError(
-                "Failed to parse pagedata JSON, does not contain an "
-                '"digital_items" key'
+                'Failed to parse pagedata JSON, does not contain an "digital_items" key'
             ) from e
         for digital_item in digital_items:
             try:

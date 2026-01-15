@@ -159,6 +159,7 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+.idea/
 cookies.txt
 docker-config/
 docker-downloads/

@@ -18,6 +18,10 @@ run:
 	rm ./bcs
 
 
+test:
+	uv run python -m pytest -v
+
+
 lint:
 	uvx ruff check
 

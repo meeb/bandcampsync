@@ -58,7 +58,7 @@ class Syncer:
         """Syncs a single item (purchase).
 
         Returns:
-            bool: whether or not new media was downloaded
+            bool: indicating new media was downloaded
         """
 
         local_path = self.local_media.get_path_for_purchase(item)
@@ -166,7 +166,9 @@ class Syncer:
                     try:
                         copy_file(temp_file_path, file_dest)
                     except OSError as e:
-                        log.error(f"Failed to copy {temp_file_path} to {file_dest}: {e}")
+                        log.error(
+                            f"Failed to copy {temp_file_path} to {file_dest}: {e}"
+                        )
                 else:
                     log.error(
                         f'Downloaded file for "{item.band_name} / {item.item_title}" (id:{item.item_id}) '
