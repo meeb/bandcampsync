@@ -1,14 +1,37 @@
 [project]
 name = "bandcampsync"
 version = "0.7.0"
+authors = [
+  {name="meeb", email="meeb@meeb.org"},
+]
 description = "A Python module and script to synchronise media purchased on bandcamp.com with a local directory."
 readme = "README.md"
 requires-python = ">=3.10"
+license = "BSD-3-Clause"
+license-files = ["LICENSE",]
 dependencies = [
     "beautifulsoup4>=4.14.3",
     "curl-cffi>=0.14.0",
     "html5lib>=1.1",
 ]
+keywords = [
+  "bandcampsync",
+  "bandcamp",
+  "media",
+  "sync",
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/meeb/bandcampsync"
+Repository = "https://github.com/meeb/bandcampsync.git"
+Issues = "https://github.com/meeb/bandcampsync/issues"
 
 [dependency-groups]
 dev = [
@@ -16,3 +39,7 @@ dev = [
     "pytest-mock>=3.15.1",
     "ruff>=0.14.3",
 ]
+
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
