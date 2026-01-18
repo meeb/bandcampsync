@@ -49,7 +49,6 @@ album, and track names automatically without issues.
 libraries:
 
 * `beautifulsoup4`
-* `html5lib`
 * `curl-cffi`
 
 You can install `bandcampsync` via pip:
