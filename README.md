@@ -24,7 +24,7 @@ The media directory will have the following format:
 /media/
 /media/Artist Name
 /media/Artist Name/Album Name
-/media/Artist Name/Album Name/bandcamp_item_id.txt (if no ignores file provided)
+/media/Artist Name/Album Name/bandcamp_item_id.txt (if no ignore file provided)
 /media/Artist Name/Album Name/cover.jpg
 /media/Artist Name/Album Name/Track Name.flac
 ```
@@ -33,20 +33,26 @@ The directory format of `artist_name`/`item_title` is not editable.
 
 `bandcamp_item_id.txt` is a special file created in each item directory and
 it contains the Bandcamp item ID as an integer. This file is used by BandcampSync
-to track which media items have already been downloaded, when an ignores file is
+to track which media items have already been downloaded, when an ignore file is
 not being used. You can rename the artist or album directories, but do not delete
-the `bandcamp_item_id.txt` file or the media item will be redownloaded the next
+the `bandcamp_item_id.txt` file or the media item will be re-downloaded the next
 time `bandcampsync` is run.
 
 The `bandcamp_item_id.txt` file method of tracking what items are synchronised
 also means you can also use media managers such as Lidarr to rename artist,
-album and track names automatically without issues.
+album, and track names automatically without issues.
 
 
 ## Installation
 
-`bandcampsync` is pure Python and only has a dependancy on the `requests` and
-`beautifulsoup4` libraries. You can install `bandcampsync` via pip:
+`bandcampsync` is pure Python and depends on the following
+libraries:
+
+* `beautifulsoup4`
+* `html5lib`
+* `curl-cffi`
+
+You can install `bandcampsync` via pip:
 
 ```bash
 $ pip install bandcampsync
@@ -124,7 +130,7 @@ so the script won't run exactly on the hour.
 
 `RUN_DAILY_AT` should be a number between 0 and 23 (specifying an hour).
 
-`PUID` and `PGID` are the user and group IDs to attempt run the download as.
+`PUID` and `PGID` are the user and group IDs to attempt to run the download as.
 This sets the UID and GID of the files that are downloaded.
 
 `TEMP_DIR` variable can be set to a directory in the container. If set the
@@ -144,7 +150,7 @@ items have been loaded, same as the `--notify-url` CLI argument.
 
 ## Configuration
 
-BandcampSync requires minimial configuration. First, it requires your session
+BandcampSync requires minimal configuration. First, it requires your session
 cookies from an authenticated Bandcamp account. The easiest way to get this is
 to go to https://bandcamp.com/ in your browser and log in with your account.
 
@@ -164,7 +170,7 @@ Save this string to a file called `cookies.txt`.
 ![Getting your session cookues](https://github.com/meeb/bandcampsync/blob/main/docs/cookies.jpg?raw=true)
 
 You need to save your session ID from cookies manually because Bandcamp has
-a captcha on the login form so BandcampSync can't log in with your username
+a CAPTCHA on the login form so BandcampSync can't log in with your username
 and password for you.
 
 IMPORTANT NOTE: Keep the `cookies.txt` file safe! Anyone with access to this file
@@ -175,7 +181,7 @@ You can also use Netscape formatted cookie export files if you have exported you
 cookies using a cookie exporter plugin or similar tool.
 
 
-## CLI usage
+## CLI Usage
 
 Once you have the Python `bandcampsync` module installed you can call it with the
 `bandcampsync` command:
@@ -200,7 +206,7 @@ See `-h` or `--help` for the full list of command line options.
 $ bandcampsync --cookies cookies.txt --directory /path/to/music --ignore "badband"
 ```
 
-`--ignore` supports multiple strings space seperated strings, for example
+`--ignore` supports multiple strings space separated strings, for example
 `--ignore "band1 band2 band3"`.
 
 
@@ -209,12 +215,12 @@ bandcamp ids of each item to skip (see above).
 
 If you do, the items downloaded will be appended to the file, so that the next
 time you run the script those items will not be re-downloaded.
-This means you can use media managers such as Lidarr to rename artist, album
+This means you can use media managers such as Lidarr to rename artist, album,
 and track names automatically, rename the directory, or even move the items out
 of the download directory without issues.
 
 
-You can notify an an external HTTP server when new items have been loaded with `-n` or
+You can notify an external HTTP server when new items have been loaded with `-n` or
 `--notify-url`.
 
 You can set the maximum number of download retry attempts with `--max-retries` (defaults to `3`) and the number of seconds to wait between retries with `--retry-wait` (defaults to `5`).
@@ -225,7 +231,7 @@ You can set the number of concurrent downloads with `-j` or `--concurrency` (def
 $ bandcampsync ... --notify-url "http://some.service.local/some-uri"
 ```
 
-You can use this to call a "refresh" hook on media servers (for example rescan a Plex
+You can use this to call a "refresh" hook on media servers (for example re-scan a Plex
 or Jellyfin library). The `--notify-url` parameter, if set, simply makes an HTTP GET
 request to the specified URL and confirms it returns a `2XX` response.
 
@@ -234,7 +240,7 @@ For advanced notify URLs you can use the following `--notify-url` format:
 `method url headers body`
 
 `method` must be one of `GET` or `POST`. `url` is any URL. `headers` are a comma
-separated list of `key=value` pairs and `body` is an body string to send if the `method`
+separated list of `key=value` pairs and `body` is a body string to send if the `method`
 is `POST`. You can use `-` for header and body values to leave them unset. Some examples:
 
 `GET http://some.service.local/some-uri - -`
@@ -263,4 +269,4 @@ another format with the `--format` argument. Common Bandcamp download formats ar
 
 # Contributing
 
-All properly formatted and sensible pull requests, issues and comments are welcome.
+All properly formatted and sensible pull requests, issues, and comments are welcome.
