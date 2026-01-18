@@ -1,3 +1,0 @@
-curl_cffi
-beautifulsoup4
-html5lib
