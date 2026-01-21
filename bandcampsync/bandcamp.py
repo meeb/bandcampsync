@@ -17,6 +17,10 @@ class BandcampError(ValueError):
     pass
 
 
+class BandcampDownloadUnavailable(BandcampError):
+    pass
+
+
 class Bandcamp:
     BASE_PROTO = "https"
     BASE_DOMAIN = "bandcamp.com"
@@ -206,6 +210,51 @@ class Bandcamp:
         )
         return True
 
+    def _resolve_download_url(self, item, redownload_urls):
+        sale_item_type = item.sale_item_type
+        sale_item_id = item.sale_item_id
+        if sale_item_type is None or sale_item_id is None:
+            log.error(
+                f"Failed to locate sale item metadata for {item.band_name} / {item.item_title}, skipping item..."
+            )
+            return None
+        download_url_key = f"{sale_item_type}{sale_item_id}"
+        download_url = redownload_urls.get(download_url_key)
+        if not download_url:
+            if item.is_physical_purchase():
+                log.info(
+                    f"No download available for physical purchase {item.band_name} / {item.item_title} (key:{download_url_key}), skipping"
+                )
+            else:
+                log.warning(
+                    f"No download available for {item.band_name} / {item.item_title} (key:{download_url_key}), skipping item..."
+                )
+            return None
+        return download_url
+
+    def _deduplicate_purchases(self, grouped_items):
+        for item_key, items in grouped_items.items():
+            count = len(items)
+            if count == 1:
+                continue
+            duplicate = items[0]
+            item_ids = ", ".join(str(item.item_id) for item in items)
+            log.info(
+                f'Found {count} collection entries with the same name: "{duplicate.band_name} / {duplicate.item_title}" (ids: {item_ids})'
+            )
+            duplicate_details = []
+            for item in items:
+                log.debug(f"Duplicate entry: url={item.download_url}")
+                duplicate_details.append(
+                    f"id={item.item_id} item_type={getattr(item, 'item_type', '')} "
+                    f"sale_item_type={item.sale_item_type} sale_item_id={item.sale_item_id}"
+                )
+                # Use the item ID as a suffix to ensure duplicates are downloaded to distinct folders.
+                item.folder_suffix = f" [{item.item_id}]"
+            log.debug(
+                f"Duplicate name details: {duplicate.band_name} / {duplicate.item_title}: {', '.join(duplicate_details)}"
+            )
+
     def load_purchases(self):
         """
         Loads all purchases on the authenticated account and returns a list of
@@ -221,6 +270,7 @@ class Bandcamp:
         page_ts = 0
         token = f"{now}:{page_ts}:a::"
         per_page = 100
+        items_by_title_key = {}
         while True:
             log.info(f"Requesting {per_page} purchases using token {token}")
             data = {
@@ -246,36 +296,37 @@ class Bandcamp:
                     "Failed to extract redownload_urls from collection results page"
                 )
             for item_data in items:
-                try:
-                    band_name = item_data["band_name"]
-                except KeyError:
+                item = BandcampItem(item_data)
+                item_token = item.token
+                if item_token is not None:
+                    token = item_token
+                if not item.band_name:
                     log.error(
                         "Failed to locate band name in item metadata, skipping item..."
                     )
                     continue
-                try:
-                    title = item_data["album_title"]
-                except KeyError:
+                if not item.item_title:
                     log.error(
-                        f'Failed to locate title in item metadata (possibly a subscription?) for "{band_name}", skipping item...'
+                        f'Failed to locate title in item metadata (possibly a subscription?) for "{item.band_name}", skipping item...'
                     )
                     continue
-                sale_item_type = item_data["sale_item_type"]
-                sale_item_id = item_data["sale_item_id"]
-                download_url_key = f"{sale_item_type}{sale_item_id}"
-                try:
-                    download_url = redownload_urls[download_url_key]
-                except KeyError:
+                if item.item_id is None:
                     log.error(
                         f"Failed to locate download URL for {band_name} / {title} "
-                        f"(key:{download_url_key}), skipping item..."
+                        f'Failed to locate item id for "{item.band_name} / {item.item_title}", skipping item...'
                     )
                     continue
-                item_data["download_url"] = download_url
-                item = BandcampItem(item_data)
-                token = item.token
-                log.info(f"Found item: {band_name} / {title} (id:{item.item_id})")
+                download_url = self._resolve_download_url(item, redownload_urls)
+                if not download_url:
+                    continue
+                item.download_url = download_url
+                item_key = (item.band_name, item.item_title)
+                items_by_title_key.setdefault(item_key, []).append(item)
+                log.info(f"Found item: {item.band_name} / {item.item_title} (id:{item.item_id})")
                 self.purchases.append(item)
+
+        # De-duplicate multiple purchases sharing the same artist and title.
+        self._deduplicate_purchases(items_by_title_key)
         log.info(f"Loaded {len(self.purchases)} purchases")
         return True
 
@@ -284,7 +335,7 @@ class Bandcamp:
         pagedata = self._extract_pagedata_from_soup(soup)
         download_url = None
         if not pagedata:
-            raise ValueError('Either "url" or "pagedata" must be supplied')
+            raise BandcampError("No download information found for item")
         try:
             digital_items = pagedata["digital_items"]
         except KeyError as e:
@@ -323,7 +374,7 @@ class Bandcamp:
                         '"digital_items.downloads.[encoding].url" key'
                     ) from e
                 return download_url
-        return False
+        raise BandcampDownloadUnavailable("No download available for item")
 
     def check_download_stat(self, item, file_download_url):
         """
@@ -352,6 +403,54 @@ class Bandcamp:
 class BandcampItem:
     def __init__(self, data):
         self._data = data
+        self._data.setdefault("folder_suffix", "")
+
+    @property
+    def band_name(self):
+        return self._data.get("band_name")
+
+    @property
+    def item_title(self):
+        return self._data.get("item_title")
+
+    @property
+    def item_id(self):
+        return self._data.get("item_id")
+
+    @property
+    def sale_item_type(self):
+        return self._data.get("sale_item_type")
+
+    @property
+    def sale_item_id(self):
+        return self._data.get("sale_item_id")
+
+    @property
+    def token(self):
+        return self._data.get("token")
+
+    @property
+    def download_url(self):
+        return self._data.get("download_url")
+
+    @download_url.setter
+    def download_url(self, value):
+        self._data["download_url"] = value
+
+    @property
+    def folder_suffix(self):
+        return self._data["folder_suffix"]
+
+    @folder_suffix.setter
+    def folder_suffix(self, value):
+        self._data["folder_suffix"] = value
+
+    def is_physical_purchase(self):
+        # Note that this only tells us that this is a physical purchase, not whether or not there's also a digital download.
+        item_type = self._data.get("item_type")
+        if item_type:
+            return item_type == "package"
+        return self._data.get("sale_item_type") == "p"
 
     def __repr__(self):
         return json.dumps(self._data, indent=4, sort_keys=True)

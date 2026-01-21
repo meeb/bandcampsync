@@ -85,7 +85,7 @@ class LocalMedia:
         return (
             self.media_dir
             / self._clean_path(item.band_name)
-            / self._clean_path(item.item_title)
+            / self._clean_path(f"{item.item_title}{item.folder_suffix}")
         )
 
     def get_path_for_file(self, local_path, file_name):
