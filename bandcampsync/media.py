@@ -1,5 +1,7 @@
 import pickle
 from unicodedata import normalize
+
+from bandcampsync.bandcamp import BandcampItem
 from .logger import get_logger
 
 
@@ -20,31 +22,17 @@ class LocalMedia:
 
     ITEM_INDEX_FILENAME = "bandcamp_item_id.txt"
 
-    def __init__(self, media_dir, skip_filesystem):
+    def __init__(self, media_dir, skip_filesystem, ignores, sync_ignore_file):
         self.media_dir = media_dir
+        self.ignores = ignores
         self.media = {}
         self.item_names = set()
+        self.sync_ignore_file = sync_ignore_file
         log.info(f"Local media directory: {self.media_dir}")
-        self.found_data = False
 
-        self.load_data()
-
-        if not skip_filesystem or not self.found_data:
+        # If the ignores file is empty, we need to traverse the filesystem anyway
+        if not skip_filesystem or len(self.ignores.ids) < 1:
             self.index()
-
-    def load_data(self):
-        try:
-            with open("media.pickle", "rb") as f:
-                self.media = pickle.load(f)
-            self.found_data = True
-        except FileNotFoundError:
-            log.info(
-                "No persisted data file found; will traverse filesystem to find downloaded albums."
-            )
-
-    def persist_data(self):
-        with open("media.pickle", "wb") as f:
-            pickle.dump(self.media, f)
 
     def _clean_path(self, path_str):
         path_str = str(path_str)
@@ -70,20 +58,21 @@ class LocalMedia:
                     if child2.is_dir():
                         for child3 in child2.iterdir():
                             if child3.name == self.ITEM_INDEX_FILENAME:
-                                if child2 not in self.media.values():
-                                    item_id = self.read_item_id(child3)
-                                    self.media[item_id] = child2
-                                    self.item_names.add(
-                                        (child2.parent.name, child2.name)
+                                item_id = self.read_item_id(child3)
+                                if self.sync_ignore_file:
+                                    item = BandcampItem(
+                                        {
+                                            "item_id": item_id,
+                                            "band_name": child2.parent.name,
+                                            "item_title": child2.name,
+                                        }
                                     )
-                                    self.persist_data()
-                                    log.info(
-                                        f"Detected locally downloaded media: {item_id} = {child2}"
-                                    )
-                                else:
-                                    log.info(
-                                        f"Skipping {child2} as it's already present in database"
-                                    )
+                                    self.ignores.add(item)
+                                self.media[item_id] = child2
+                                self.item_names.add((child2.parent.name, child2.name))
+                                log.info(
+                                    f"Detected locally downloaded media: {item_id} = {child2}"
+                                )
         return True
 
     def read_item_id(self, filepath):
@@ -123,7 +112,6 @@ class LocalMedia:
         outfile = dirpath / self.ITEM_INDEX_FILENAME
         log.info(f"Writing bandcamp item id:{item.item_id} to: {outfile}")
         self.media[item.item_id] = dirpath
-        self.persist_data()
         with open(outfile, "wt") as f:
             f.write(f"{item.item_id}\n")
         return True

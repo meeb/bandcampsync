@@ -36,10 +36,15 @@ class Syncer:
         max_retries=3,
         retry_wait=5,
         skip_filesystem=False,
+        sync_ignore_file=False,
     ):
         self.ignores = Ignores(ign_file_path=ign_file_path, ign_patterns=ign_patterns)
+        self.sync_ignore_file = sync_ignore_file
         self.local_media = LocalMedia(
-            media_dir=dir_path, skip_filesystem=skip_filesystem
+            media_dir=dir_path,
+            skip_filesystem=skip_filesystem,
+            ignores=self.ignores,
+            sync_ignore_file=sync_ignore_file,
         )
         self.media_format = media_format
         self.temp_dir_root = temp_dir_root
@@ -223,7 +228,7 @@ class Syncer:
             # Wait for all tasks to complete
             await asyncio.gather(*tasks)
 
-        if self.show_id_file_warning:
+        if self.show_id_file_warning and not self.sync_ignore_file:
             log.warning(
                 f"The {self.ign_file_path} file is tracking already downloaded items, "
                 f"but some directories are using bandcamp_item_id.txt files. "

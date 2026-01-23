@@ -7,115 +7,78 @@ from pathlib import Path
 from bandcampsync import version, logger, do_sync
 
 
-log = logger.get_logger("run")
+log = logger.get_logger('run')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        prog="bandcampsync",
-        description="Syncs media purcahsed on bandcamp.com with a local directory",
+        prog='bandcampsync',
+        description='Syncs media purcahsed on bandcamp.com with a local directory',
     )
-    parser.add_argument(
-        "-v",
-        "--version",
-        action="store_true",
-        help="Displays the bandcampsync version and exits",
-    )
-    parser.add_argument(
-        "-c", "--cookies", required=True, help="Path to the cookies file"
-    )
-    parser.add_argument(
-        "-d",
-        "--directory",
-        required=True,
-        help="Path to the directory to download media to",
-    )
-    parser.add_argument(
-        "-I", "--ignore-file", default="", help="Path to the ignore file"
-    )
-    parser.add_argument(
-        "-i",
-        "--ignore",
-        default="",
-        help="A space-delimited list of patterns matching artists to bypass",
-    )
-    parser.add_argument(
-        "-f",
-        "--format",
-        default="flac",
-        help='Media format to download, defaults to "flac"',
-    )
-    parser.add_argument(
-        "-x",
-        "--no-filesystem",
-        action="store_true",
-        help="Don't traverse filesystem; rely on database for already downloaded items",
-    )
-    parser.add_argument(
-        "-t", "--temp-dir", default="", help="Path to use for temporary downloads"
-    )
-    parser.add_argument(
-        "-n",
-        "--notify-url",
-        default="",
-        help="URL to notify with a GET request when any new downloads have completed",
-    )
-    parser.add_argument(
-        "-j",
-        "--concurrency",
-        type=int,
-        default=1,
-        help="Number of concurrent downloads (default: 1)",
-    )
-    parser.add_argument(
-        "--max-retries",
-        type=int,
-        default=3,
-        help="Maximum number of retries for a download (default: 3)",
-    )
-    parser.add_argument(
-        "--retry-wait",
-        type=int,
-        default=5,
-        help="Number of seconds to wait between retries (default: 5)",
-    )
+    parser.add_argument('-v', '--version', action='store_true',
+        help='Displays the bandcampsync version and exits')
+    parser.add_argument('-c', '--cookies', required=True,
+        help='Path to the cookies file')
+    parser.add_argument('-d', '--directory', required=True,
+        help='Path to the directory to download media to')
+    parser.add_argument('-I', '--ignore-file', default='',
+        help='Path to the ignore file')
+    parser.add_argument('-i', '--ignore', default='',
+        help='A space-delimited list of patterns matching artists to bypass')
+    parser.add_argument('-f', '--format', default='flac',
+        help='Media format to download, defaults to "flac"')
+    parser.add_argument('-t', '--temp-dir', default='',
+        help='Path to use for temporary downloads')
+    parser.add_argument('-n', '--notify-url', default='',
+        help='URL to notify with a GET request when any new downloads have completed')
+    parser.add_argument('-j', '--concurrency', type=int, default=1,
+        help='Number of concurrent downloads (default: 1)')
+    parser.add_argument('--max-retries', type=int, default=3,
+        help='Maximum number of retries for a download (default: 3)')
+    parser.add_argument('--retry-wait', type=int, default=5,
+        help='Number of seconds to wait between retries (default: 5)')
+    parser.add_argument('--skip-filesystem', action='store_true',
+        help='Only use ignore-file for to determine downloaded items')
+    parser.add_argument('--sync-ignore-file', action='store_true',
+        help='Add already downloaded items to ignore-file')
     args = parser.parse_args()
     if args.version:
-        print(f"BandcampSync version: {version}", file=sys.stdout)
+        print(f'BandcampSync version: {version}', file=sys.stdout)
         sys.exit(0)
     cookies_path = Path(args.cookies).resolve()
     ign_file_path = Path(args.ignore_file).resolve() if args.ignore_file else None
     dir_path = Path(args.directory).resolve()
     ign_patterns = args.ignore
-    skip_filesystem = args.no_filesystem
+    skip_filesystem = args.skip_filesystem
+    sync_ignore_file = args.sync_ignore_file
     media_format = args.format
     if not cookies_path.is_file():
-        raise ValueError(f"Cookies file does not exist: {cookies_path}")
+        raise ValueError(f'Cookies file does not exist: {cookies_path}')
     if not dir_path.is_dir():
-        raise ValueError(f"Directory does not exist: {dir_path}")
+        raise ValueError(f'Directory does not exist: {dir_path}')
     if args.ignore:
         patterns = args.ignore
-        log.warning(f"BandcampSync is bypassing: {patterns}")
+        log.warning(f'BandcampSync is bypassing: {patterns}')
     if args.temp_dir:
         temp_dir = Path(args.temp_dir).resolve()
         if not temp_dir.is_dir():
-            raise ValueError(f"Temporary directory does not exist: {temp_dir}")
+            raise ValueError(f'Temporary directory does not exist: {temp_dir}')
     else:
         temp_dir = None
     if args.notify_url:
         notify_url = args.notify_url
-        log.info(f"BandcampSync will notify: {notify_url}")
+        log.info(f'BandcampSync will notify: {notify_url}')
     else:
         notify_url = None
     concurrency = args.concurrency
     max_retries = args.max_retries
     retry_wait = args.retry_wait
     if concurrency > 1:
-        log.info(f"BandcampSync will use {concurrency} concurrent downloads")
-    log.info(f"BandcampSync v{version} starting")
-    with open(cookies_path, "rt") as f:
+        log.info(f'BandcampSync will use {concurrency} concurrent downloads')
+    log.info(f'BandcampSync v{version} starting')
+    with open(cookies_path, 'rt') as f:
         cookies = f.read().strip()
-    log.info(f'Loaded cookies from "{cookies_path}"')
+    log.info(f'Loaded cookies from '{cookies_path}'')
     do_sync(
         cookies,
         dir_path,
@@ -128,5 +91,6 @@ if __name__ == "__main__":
         max_retries,
         retry_wait,
         skip_filesystem,
+        sync_ignore_file
     )
-    log.info(f"Done")
+    log.info(f'Done')
