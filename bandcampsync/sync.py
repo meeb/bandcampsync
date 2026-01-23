@@ -42,8 +42,8 @@ class Syncer:
         self.sync_ignore_file = sync_ignore_file
         self.local_media = LocalMedia(
             media_dir=dir_path,
-            skip_filesystem=skip_filesystem,
             ignores=self.ignores,
+            skip_filesystem=skip_filesystem,
             sync_ignore_file=sync_ignore_file,
         )
         self.media_format = media_format

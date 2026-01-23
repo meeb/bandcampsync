@@ -1,6 +1,4 @@
-import pickle
 from unicodedata import normalize
-
 from bandcampsync.bandcamp import BandcampItem
 from .logger import get_logger
 
@@ -22,7 +20,7 @@ class LocalMedia:
 
     ITEM_INDEX_FILENAME = "bandcamp_item_id.txt"
 
-    def __init__(self, media_dir, skip_filesystem, ignores, sync_ignore_file):
+    def __init__(self, media_dir, ignores, skip_filesystem, sync_ignore_file):
         self.media_dir = media_dir
         self.ignores = ignores
         self.media = {}
