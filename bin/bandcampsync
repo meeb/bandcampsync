@@ -50,7 +50,7 @@ if __name__ == '__main__':
     dir_path = Path(args.directory).resolve()
     ign_patterns = args.ignore
     media_format = args.format
-    skip_filesystem = args.skip_filesystem
+    skip_item_index = args.skip_item_index
     sync_ignore_file = args.sync_ignore_file
     if not cookies_path.is_file():
         raise ValueError(f'Cookies file does not exist: {cookies_path}')
@@ -90,7 +90,7 @@ if __name__ == '__main__':
         concurrency,
         max_retries,
         retry_wait,
-        skip_filesystem,
+        skip_item_index,
         sync_ignore_file
     )
     log.info(f'Done')

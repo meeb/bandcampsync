@@ -16,7 +16,7 @@ def do_sync(
     concurrency=1,
     max_retries=3,
     retry_wait=5,
-    skip_filesystem=False,
+    skip_item_index=False,
     sync_ignore_file=False,
 ):
     Syncer(
@@ -30,7 +30,7 @@ def do_sync(
         concurrency,
         max_retries,
         retry_wait,
-        skip_filesystem,
+        skip_item_index,
         sync_ignore_file,
     )
 

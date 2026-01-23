@@ -20,7 +20,7 @@ class LocalMedia:
 
     ITEM_INDEX_FILENAME = "bandcamp_item_id.txt"
 
-    def __init__(self, media_dir, ignores, skip_filesystem, sync_ignore_file):
+    def __init__(self, media_dir, ignores, skip_item_index, sync_ignore_file):
         self.media_dir = media_dir
         self.ignores = ignores
         self.media = {}
@@ -29,7 +29,7 @@ class LocalMedia:
         log.info(f"Local media directory: {self.media_dir}")
 
         # If the ignores file is empty, we need to traverse the filesystem anyway
-        if not skip_filesystem or len(self.ignores.ids) < 1:
+        if not skip_item_index or len(self.ignores.ids) < 1:
             self.index()
 
     def _clean_path(self, path_str):
