@@ -65,7 +65,8 @@ class LocalMedia:
                                             "item_title": child2.name,
                                         }
                                     )
-                                    self.ignores.add(item)
+                                    if not self.ignores.is_ignored(item):
+                                        self.ignores.add(item)
                                 self.media[item_id] = child2
                                 self.item_names.add((child2.parent.name, child2.name))
                                 log.info(
