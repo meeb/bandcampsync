@@ -228,6 +228,7 @@ class Syncer:
             # Wait for all tasks to complete
             await asyncio.gather(*tasks)
 
+        # We don't need to show this warning if we're running the ignorefile sync script
         if self.show_id_file_warning and not self.sync_ignore_file:
             log.warning(
                 f"The {self.ign_file_path} file is tracking already downloaded items, "

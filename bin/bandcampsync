@@ -49,9 +49,9 @@ if __name__ == '__main__':
     ign_file_path = Path(args.ignore_file).resolve() if args.ignore_file else None
     dir_path = Path(args.directory).resolve()
     ign_patterns = args.ignore
+    media_format = args.format
     skip_filesystem = args.skip_filesystem
     sync_ignore_file = args.sync_ignore_file
-    media_format = args.format
     if not cookies_path.is_file():
         raise ValueError(f'Cookies file does not exist: {cookies_path}')
     if not dir_path.is_dir():
@@ -78,7 +78,7 @@ if __name__ == '__main__':
     log.info(f'BandcampSync v{version} starting')
     with open(cookies_path, 'rt') as f:
         cookies = f.read().strip()
-    log.info(f'Loaded cookies from '{cookies_path}'')
+    log.info(f'Loaded cookies from "{cookies_path}"')
     do_sync(
         cookies,
         dir_path,
