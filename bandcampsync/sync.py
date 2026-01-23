@@ -234,6 +234,7 @@ class Syncer:
                 f"The {self.ign_file_path} file is tracking already downloaded items, "
                 f"but some directories are using bandcamp_item_id.txt files. "
                 f"If you want to get migrate from ID files to using the {self.ign_file_path} file, "
+                f"pass the '--sync-ignore-file' flag, or"
                 f"run the following script inside the downloads directory, then append the "
                 f"content of the new ignores.txt file to the ignores file in your "
                 f"config directory:\n"
