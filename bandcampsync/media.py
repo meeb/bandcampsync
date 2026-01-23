@@ -1,3 +1,4 @@
+import pickle
 from unicodedata import normalize
 from .logger import get_logger
 
@@ -19,12 +20,22 @@ class LocalMedia:
 
     ITEM_INDEX_FILENAME = "bandcamp_item_id.txt"
 
-    def __init__(self, media_dir):
+    def __init__(self, media_dir, skip_filesystem):
         self.media_dir = media_dir
         self.media = {}
         self.item_names = set()
         log.info(f"Local media directory: {self.media_dir}")
-        self.index()
+
+        try:
+            with open("media.pickle", "wb") as f:
+                self.media = pickle.load(f)
+            with open("item_names.pickle", "wb") as f:
+                self.item_names = pickle.load(f)
+        except:
+            pass
+
+        if not skip_filesystem:
+            self.index()
 
     def _clean_path(self, path_str):
         path_str = str(path_str)
@@ -53,9 +64,14 @@ class LocalMedia:
                                 item_id = self.read_item_id(child3)
                                 self.media[item_id] = child2
                                 self.item_names.add((child2.parent.name, child2.name))
+                                # print(self.media)
+                                # print(self.item_names)
                                 log.info(
                                     f"Detected locally downloaded media: {item_id} = {child2}"
                                 )
+
+        self.persist_data()
+
         return True
 
     def read_item_id(self, filepath):
@@ -91,9 +107,17 @@ class LocalMedia:
     def get_path_for_file(self, local_path, file_name):
         return local_path / self._clean_path(file_name)
 
+    def persist_data(self):
+        with open("media.pickle", "wb") as f:
+            pickle.dump(self.media, f)
+        with open("item_names.pickle", "wb") as f:
+            pickle.dump(self.item_names, f)
+
     def write_bandcamp_id(self, item, dirpath):
         outfile = dirpath / self.ITEM_INDEX_FILENAME
         log.info(f"Writing bandcamp item id:{item.item_id} to: {outfile}")
+        self.media[item.item_id] = dirpath
+        self.persist_data()
         with open(outfile, "wt") as f:
             f.write(f"{item.item_id}\n")
         return True
