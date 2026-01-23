@@ -37,8 +37,8 @@ if __name__ == '__main__':
         help='Maximum number of retries for a download (default: 3)')
     parser.add_argument('--retry-wait', type=int, default=5,
         help='Number of seconds to wait between retries (default: 5)')
-    parser.add_argument('--skip-filesystem', action='store_true',
-        help='Only use ignore-file for to determine downloaded items')
+    parser.add_argument('--skip-item-index', action='store_true',
+        help='Skip indexing downloaded items in the filesystem; only use ignore-file for to determining which items are downloaded already')
     parser.add_argument('--sync-ignore-file', action='store_true',
         help='Add already downloaded items to ignore-file')
     args = parser.parse_args()
