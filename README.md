@@ -225,7 +225,7 @@ When `--sync-ignore-file` is passed, any downloaded items found in the filesyste
 are not already present in the ignore file will be appended to the ignore file. This
 option requires that you pass a path to an ignore file with `-I / --ignore-file`.
 
-When `--skip-item-index` is passed only the ignore file will be used to determine which
+When `--skip-item-index` is passed, only the ignore file will be used to determine which
 items have been downloaded already; bandcampsync will not traverse your filesystem and
 read the bandcamp_item_id.txt files. This option requires that you pass a path to an
 ignore file with `-I / --ignore-file`.
