@@ -146,6 +146,9 @@ items have been loaded, same as the `--notify-url` CLI argument.
 
 `CONCURRENCY` can be set to the number of concurrent downloads, defaults to `1`.
 
+`SKIP_ITEM_INDEX` can be set to true to rely exclusively on the ignore file to determine which items
+have been downloaded already, same as the `--skip-item-index` CLI argument.
+
 
 ## Configuration
 
@@ -217,6 +220,15 @@ time you run the script those items will not be re-downloaded.
 This means you can use media managers such as Lidarr to rename artist, album,
 and track names automatically, rename the directory, or even move the items out
 of the download directory without issues.
+
+When `--sync-ignore-file` is passed, any downloaded items found in the filesystem that
+are not already present in the ignore file will be appended to the ignore file. This
+option requires that you pass a path to an ignore file with `-I / --ignore-file`.
+
+When `--skip-item-index` is passed, only the ignore file will be used to determine which
+items have been downloaded already; bandcampsync will not traverse your filesystem and
+read the bandcamp_item_id.txt files. This option requires that you pass a path to an
+ignore file with `-I / --ignore-file`.
 
 
 You can notify an external HTTP server when new items have been loaded with `-n` or

@@ -36,9 +36,17 @@ class Syncer:
         concurrency=1,
         max_retries=3,
         retry_wait=5,
+        skip_item_index=False,
+        sync_ignore_file=False,
     ):
         self.ignores = Ignores(ign_file_path=ign_file_path, ign_patterns=ign_patterns)
-        self.local_media = LocalMedia(media_dir=dir_path)
+        self.sync_ignore_file = sync_ignore_file
+        self.local_media = LocalMedia(
+            media_dir=dir_path,
+            ignores=self.ignores,
+            skip_item_index=skip_item_index,
+            sync_ignore_file=sync_ignore_file,
+        )
         self.media_format = media_format
         self.temp_dir_root = temp_dir_root
         self.ign_file_path = ign_file_path
@@ -234,11 +242,13 @@ class Syncer:
             # Wait for all tasks to complete
             await asyncio.gather(*tasks)
 
-        if self.show_id_file_warning:
+        # We don't need to show this warning if we're running the ignorefile sync script
+        if self.show_id_file_warning and not self.sync_ignore_file:
             log.warning(
                 f"The {self.ign_file_path} file is tracking already downloaded items, "
                 f"but some directories are using bandcamp_item_id.txt files. "
                 f"If you want to get migrate from ID files to using the {self.ign_file_path} file, "
+                f"pass the '--sync-ignore-file' flag, or"
                 f"run the following script inside the downloads directory, then append the "
                 f"content of the new ignores.txt file to the ignores file in your "
                 f"config directory:\n"

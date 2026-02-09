@@ -37,6 +37,10 @@ if __name__ == '__main__':
         help='Maximum number of retries for a download (default: 3)')
     parser.add_argument('--retry-wait', type=int, default=5,
         help='Number of seconds to wait between retries (default: 5)')
+    parser.add_argument('--skip-item-index', action='store_true',
+        help='Skip indexing downloaded items in the filesystem; only use ignore file for to determining which items are downloaded already')
+    parser.add_argument('--sync-ignore-file', action='store_true',
+        help='Add already downloaded items found in filesystem to ignore file')
     args = parser.parse_args()
     if args.version:
         print(f'BandcampSync version: {version}', file=sys.stdout)
@@ -46,6 +50,14 @@ if __name__ == '__main__':
     dir_path = Path(args.directory).resolve()
     ign_patterns = args.ignore
     media_format = args.format
+    skip_item_index = args.skip_item_index
+    sync_ignore_file = args.sync_ignore_file
+
+    if skip_item_index and not ign_file_path:
+        raise ValueError("--skip-item-index was passed, but no ignore file path was passed. --skip-item-index requires an ignore file path (--ignore-file/-I)")
+    if sync_ignore_file and not ign_file_path:
+        raise ValueError("--sync-ignore-file was passed, but no ignore file path was passed. --sync-ignore-file requires an ignore file path (--ignore-file/-I)")
+
     if not cookies_path.is_file():
         raise ValueError(f'Cookies file does not exist: {cookies_path}')
     if not dir_path.is_dir():
@@ -73,5 +85,18 @@ if __name__ == '__main__':
     with open(cookies_path, 'rt') as f:
         cookies = f.read().strip()
     log.info(f'Loaded cookies from "{cookies_path}"')
-    do_sync(cookies, dir_path, media_format, temp_dir, ign_file_path, ign_patterns, notify_url, concurrency, max_retries, retry_wait)
+    do_sync(
+        cookies,
+        dir_path,
+        media_format,
+        temp_dir,
+        ign_file_path,
+        ign_patterns,
+        notify_url,
+        concurrency,
+        max_retries,
+        retry_wait,
+        skip_item_index,
+        sync_ignore_file
+    )
     log.info(f'Done')

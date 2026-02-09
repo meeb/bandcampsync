@@ -1,4 +1,5 @@
 from unicodedata import normalize
+from bandcampsync.bandcamp import BandcampItem
 from .logger import get_logger
 
 
@@ -19,12 +20,17 @@ class LocalMedia:
 
     ITEM_INDEX_FILENAME = "bandcamp_item_id.txt"
 
-    def __init__(self, media_dir):
+    def __init__(self, media_dir, ignores, skip_item_index, sync_ignore_file):
         self.media_dir = media_dir
+        self.ignores = ignores
         self.media = {}
         self.item_names = set()
+        self.sync_ignore_file = sync_ignore_file
         log.info(f"Local media directory: {self.media_dir}")
-        self.index()
+
+        # If the ignores file is empty, we need to traverse the filesystem anyway
+        if not skip_item_index or len(self.ignores.ids) < 1:
+            self.index()
 
     def _clean_path(self, path_str):
         path_str = str(path_str)
@@ -51,6 +57,16 @@ class LocalMedia:
                         for child3 in child2.iterdir():
                             if child3.name == self.ITEM_INDEX_FILENAME:
                                 item_id = self.read_item_id(child3)
+                                if self.sync_ignore_file:
+                                    item = BandcampItem(
+                                        {
+                                            "item_id": item_id,
+                                            "band_name": child2.parent.name,
+                                            "item_title": child2.name,
+                                        }
+                                    )
+                                    if not self.ignores.is_ignored(item):
+                                        self.ignores.add(item)
                                 self.media[item_id] = child2
                                 self.item_names.add((child2.parent.name, child2.name))
                                 log.info(
