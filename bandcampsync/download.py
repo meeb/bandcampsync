@@ -1,6 +1,7 @@
 import math
 import shutil
 from zipfile import ZipFile
+from bs4 import BeautifulSoup
 from curl_cffi import requests
 from .logger import get_logger
 
@@ -26,6 +27,51 @@ class DownloadBadStatusCode(ValueError):
 
 class DownloadInvalidContentType(ValueError):
     pass
+
+
+
+class DownloadExpired(ValueError):
+    pass
+
+
+def _is_expired_download_page(html):
+    if not html:
+        return False
+    soup = BeautifulSoup(html, "html.parser")
+    reauth_error = soup.select_one("div.email-reauth-error")
+    if not reauth_error:
+        return False
+    style = (reauth_error.get("style") or "").replace(" ", "").lower()
+    return "display:none" not in style
+
+
+def _fetch_html_body(url):
+    if not url:
+        return ""
+    try:
+        resp = requests.get(url, stream=False, impersonate="chrome")
+    except Exception:
+        return ""
+    try:
+        return resp.text or ""
+    finally:
+        resp.close()
+
+
+def _read_html_body(response):
+    html_body = ""
+    try:
+        html_body = response.text or ""
+    except Exception:
+        pass
+    if not html_body:
+        try:
+            html_body = response.content.decode("utf-8", errors="replace")
+        except Exception:
+            pass
+    if not html_body:
+        html_body = _fetch_html_body(response.url)
+    return html_body
 
 
 def download_file(
@@ -56,6 +102,9 @@ def download_file(
         content_type_parts = content_type.split(";")
         major_content_type = content_type_parts[0].strip()
         if major_content_type == disallow_content_type:
+            html_body = _read_html_body(r)
+            if _is_expired_download_page(html_body):
+                raise DownloadExpired("Download expired and requires email confirmation on Bandcamp")
             raise DownloadInvalidContentType(
                 f"Invalid content type: {major_content_type}"
             )

@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from .logger import get_logger
-from .bandcamp import Bandcamp, BandcampError
+from .bandcamp import Bandcamp, BandcampError, BandcampDownloadUnavailable
 from .ignores import Ignores
 from .media import LocalMedia
 from .notify import NotifyURL
@@ -16,6 +16,7 @@ from .download import (
     is_zip_file,
     DownloadInvalidContentType,
     DownloadBadStatusCode,
+    DownloadExpired,
 )
 
 
@@ -95,13 +96,6 @@ class Syncer:
                 f'New media item, will download: "{item.band_name} / {item.item_title}" '
                 f'(id:{item.item_id}) in "{self.media_format}"'
             )
-            try:
-                local_path.mkdir(parents=True, exist_ok=True)
-            except OSError as e:
-                log.error(
-                    f"Failed to create directory: {local_path} ({e}), skipping purchase..."
-                )
-                return False
 
             for attempt in range(self.max_retries):
                 try:
@@ -129,6 +123,13 @@ class Syncer:
                                 )
                                 unzip_file(temp_file.name, temp_dir)
                                 temp_path = Path(temp_dir)
+                                try:
+                                    local_path.mkdir(parents=True, exist_ok=True)
+                                except OSError as e:
+                                    log.error(
+                                        f"Failed to create directory: {local_path} ({e}), skipping file extraction"
+                                    )
+                                    continue
                                 for file_path in temp_path.iterdir():
                                     file_dest = self.local_media.get_path_for_file(
                                         local_path, file_path.name
@@ -149,6 +150,13 @@ class Syncer:
                             format_extension = self.local_media.clean_format(
                                 self.media_format
                             )
+                            try:
+                                local_path.mkdir(parents=True, exist_ok=True)
+                            except OSError as e:
+                                log.error(
+                                    f"Failed to create directory: {local_path} ({e}), skipping file write"
+                                )
+                                continue
                             file_dest = self.local_media.get_path_for_file(
                                 local_path, f"{slug}.{format_extension}"
                             )
@@ -197,6 +205,12 @@ class Syncer:
                             f"All {self.max_retries} attempts failed for {item.band_name} / {item.item_title}: {e}. Skipping."
                         )
                         return False
+                except DownloadExpired:
+                    log.error(
+                        f'Download expired and requires email confirmation on Bandcamp for "{item.band_name} / {item.item_title}" '
+                        f"(id:{item.item_id}), skipping"
+                    )
+                    return False
 
     async def sync_items(self):
         """Syncs all items with optional concurrency."""
