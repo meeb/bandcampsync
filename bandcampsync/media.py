@@ -56,7 +56,14 @@ class LocalMedia:
                     if child2.is_dir():
                         for child3 in child2.iterdir():
                             if child3.name == self.ITEM_INDEX_FILENAME:
-                                item_id = self.read_item_id(child3)
+                                self.item_names.add((child2.parent.name, child2.name))
+                                try:
+                                    item_id = self.read_item_id(child3)
+                                except ValueError as e:
+                                    log.warning(
+                                        f"Skipping invalid item index file {child3}: {e}"
+                                    )
+                                    continue
                                 if self.sync_ignore_file:
                                     item = BandcampItem(
                                         {
@@ -68,7 +75,6 @@ class LocalMedia:
                                     if not self.ignores.is_ignored(item):
                                         self.ignores.add(item)
                                 self.media[item_id] = child2
-                                self.item_names.add((child2.parent.name, child2.name))
                                 log.info(
                                     f"Detected locally downloaded media: {item_id} = {child2}"
                                 )
