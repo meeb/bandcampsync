@@ -1,3 +1,5 @@
+import os
+from tempfile import NamedTemporaryFile
 from unicodedata import normalize
 from bandcampsync.bandcamp import BandcampItem
 from .logger import get_logger
@@ -114,8 +116,29 @@ class LocalMedia:
         return local_path / self._clean_path(file_name)
 
     def write_bandcamp_id(self, item, dirpath):
+        try:
+            item_id = int(item.item_id)
+        except Exception as e:
+            raise ValueError(
+                f'Failed to cast item ID for "{dirpath}" "{item.item_id}" as an int: {e}'
+            ) from e
+
         outfile = dirpath / self.ITEM_INDEX_FILENAME
-        log.info(f"Writing bandcamp item id:{item.item_id} to: {outfile}")
-        with open(outfile, "wt") as f:
-            f.write(f"{item.item_id}\n")
+        log.info(f"Writing bandcamp item id:{item_id} to: {outfile}")
+
+        tmp_outfile = None
+        try:
+            with NamedTemporaryFile(
+                mode="wt",
+                delete=False,
+                dir=dirpath,
+                encoding="utf-8",
+            ) as f:
+                tmp_outfile = f.name
+                f.write(f"{item_id}\n")
+            os.replace(tmp_outfile, outfile)
+        except Exception:
+            if tmp_outfile and os.path.exists(tmp_outfile):
+                os.remove(tmp_outfile)
+            raise
         return True

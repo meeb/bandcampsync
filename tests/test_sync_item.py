@@ -164,3 +164,36 @@ def test_sync_item_track_success(syncer, mock_bandcamp, tmp_path):
         # Check if copy_file was called with expected destination name (using slug)
         args, _ = mock_copy.call_args
         assert "track-slug.flac" in str(args[1])
+
+
+def test_sync_item_continues_if_writing_item_id_fails(syncer, mock_bandcamp):
+    item = Mock(
+        is_preorder=False,
+        band_name="Artist",
+        item_title="TrackTitle",
+        item_id="",
+        item_type="track",
+        url_hints={"slug": "track-slug"},
+        download_url="http://example.com/download",
+    )
+
+    mock_bandcamp.get_download_file_url.return_value = "http://example.com/file"
+    mock_bandcamp.check_download_stat.return_value = "http://example.com/file_ok"
+
+    with (
+        patch("bandcampsync.sync.download_file"),
+        patch("bandcampsync.sync.is_zip_file", return_value=False),
+        patch("bandcampsync.sync.copy_file"),
+        patch.object(
+            syncer.local_media,
+            "write_bandcamp_id",
+            side_effect=ValueError("bad item id"),
+        ) as mock_write_id,
+        patch("bandcampsync.sync.log.error") as mock_log_error,
+    ):
+        result = syncer.sync_item(item)
+
+        assert result is True
+        assert syncer.new_items_downloaded is True
+        mock_write_id.assert_called_once()
+        assert "Failed to write bandcamp item id" in mock_log_error.call_args[0][0]
