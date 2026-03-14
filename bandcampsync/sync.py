@@ -191,7 +191,13 @@ class Syncer:
                             # on the items downloaded in the current session.
                             self.ignores.add(item)
                         else:
-                            self.local_media.write_bandcamp_id(item, local_path)
+                            try:
+                                self.local_media.write_bandcamp_id(item, local_path)
+                            except (OSError, ValueError) as e:
+                                log.error(
+                                    f'Failed to write bandcamp item id for "{item.band_name} / {item.item_title}" '
+                                    f'(id:{item.item_id}) to "{local_path}": {e}'
+                                )
 
                         self.new_items_downloaded = True
                         return True
