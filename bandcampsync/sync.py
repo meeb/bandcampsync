@@ -38,6 +38,7 @@ class Syncer:
         retry_wait=5,
         skip_item_index=False,
         sync_ignore_file=False,
+        auto_run=True,
     ):
         self.ignores = Ignores(ign_file_path=ign_file_path, ign_patterns=ign_patterns)
         self.sync_ignore_file = sync_ignore_file
@@ -62,18 +63,21 @@ class Syncer:
         self.bandcamp.verify_authentication()
         self.bandcamp.load_purchases()
 
-        asyncio.run(self.sync_items())
-        self.notify()
+        if auto_run:
+            asyncio.run(self.sync_items())
+            self.notify()
 
     def sync_item(
         self,
         item,
+        encoding=None,
     ) -> bool:
         """Syncs a single item (purchase).
 
         Returns:
             bool: indicating new media was downloaded
         """
+        media_format = encoding or self.media_format
 
         local_path = self.local_media.get_path_for_purchase(item)
 
@@ -102,13 +106,13 @@ class Syncer:
         else:
             log.info(
                 f'New media item, will download: "{item.band_name} / {item.item_title}" '
-                f'(id:{item.item_id}) in "{self.media_format}"'
+                f'(id:{item.item_id}) in "{media_format}"'
             )
 
             for attempt in range(self.max_retries):
                 try:
                     initial_download_url = self.bandcamp.get_download_file_url(
-                        item, encoding=self.media_format
+                        item, encoding=media_format
                     )
                     download_file_url = self.bandcamp.check_download_stat(
                         item, initial_download_url
@@ -156,7 +160,7 @@ class Syncer:
                             if item.url_hints and isinstance(item.url_hints, dict):
                                 slug = item.url_hints.get("slug", item.item_title)
                             format_extension = self.local_media.clean_format(
-                                self.media_format
+                                media_format
                             )
                             try:
                                 local_path.mkdir(parents=True, exist_ok=True)

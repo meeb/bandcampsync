@@ -166,6 +166,42 @@ def test_sync_item_track_success(syncer, mock_bandcamp, tmp_path):
         assert "track-slug.flac" in str(args[1])
 
 
+def test_sync_item_uses_encoding_parameter(syncer, mock_bandcamp):
+    """sync_item uses the encoding kwarg, not self.media_format, when provided."""
+    item = Mock(
+        is_preorder=False,
+        band_name="Artist",
+        item_title="Album",
+        item_id=1,
+        item_type="album",
+        folder_suffix="",
+    )
+    mock_bandcamp.get_download_file_url.side_effect = BandcampError("stop after first call")
+
+    syncer.sync_item(item, encoding="mp3-320")
+
+    _, kwargs = mock_bandcamp.get_download_file_url.call_args
+    assert kwargs["encoding"] == "mp3-320"
+
+
+def test_sync_item_falls_back_to_media_format_when_no_encoding(syncer, mock_bandcamp):
+    """When encoding=None, self.media_format is used as the encoding."""
+    item = Mock(
+        is_preorder=False,
+        band_name="Artist",
+        item_title="Album",
+        item_id=1,
+        item_type="album",
+        folder_suffix="",
+    )
+    mock_bandcamp.get_download_file_url.side_effect = BandcampError("stop after first call")
+
+    syncer.sync_item(item)  # no encoding kwarg
+
+    _, kwargs = mock_bandcamp.get_download_file_url.call_args
+    assert kwargs["encoding"] == syncer.media_format  # "flac" from fixture
+
+
 def test_sync_item_continues_if_writing_item_id_fails(syncer, mock_bandcamp):
     item = Mock(
         is_preorder=False,
