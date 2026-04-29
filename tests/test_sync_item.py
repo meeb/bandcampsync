@@ -13,6 +13,7 @@ def mock_bandcamp():
     with patch("bandcampsync.sync.Bandcamp") as mock_class:
         mock_instance = Mock()
         mock_instance.purchases = []
+        mock_instance.collection_items = []
         mock_instance.verify_authentication.return_value = True
         mock_instance.load_purchases.return_value = True
         mock_class.return_value = mock_instance
@@ -258,6 +259,8 @@ def test_sync_item_continues_if_writing_item_id_fails(syncer, mock_bandcamp):
 
         assert result is True
         assert syncer.new_items_downloaded is True
+        assert syncer.had_sync_errors is True
+        assert syncer.sync_errors
         mock_write_id.assert_called_once()
         assert "Failed to write bandcamp item id" in mock_log_error.call_args[0][0]
 

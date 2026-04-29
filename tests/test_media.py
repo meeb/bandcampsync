@@ -5,13 +5,14 @@ import pytest
 from bandcampsync.media import LocalMedia
 
 
-def _create_local_media(tmp_path, skip_item_index=False):
+def _create_local_media(tmp_path, skip_item_index=False, index_on_init=True):
     ignore_ids = {1} if skip_item_index else set()
     return LocalMedia(
         media_dir=tmp_path,
         ignores=Mock(ids=ignore_ids),
         skip_item_index=skip_item_index,
         sync_ignore_file=False,
+        index_on_init=index_on_init,
     )
 
 
@@ -54,6 +55,29 @@ def test_index_loads_valid_item_id_file(tmp_path):
 
     assert local_media.media == {123: item_dir}
     assert ("Band", "Album") in local_media.item_names
+
+
+def test_lazy_local_download_check_when_not_indexed(tmp_path):
+    item_dir = tmp_path / "Band" / "Album"
+    item_dir.mkdir(parents=True)
+    (item_dir / LocalMedia.ITEM_INDEX_FILENAME).write_text("123\n")
+
+    local_media = _create_local_media(tmp_path, index_on_init=False)
+
+    assert local_media.media == {}
+    assert local_media.is_locally_downloaded(Mock(item_id=123), item_dir) is True
+    assert local_media.media == {123: item_dir}
+
+
+def test_lazy_local_download_check_detects_name_mismatch(tmp_path):
+    item_dir = tmp_path / "Band" / "Album"
+    item_dir.mkdir(parents=True)
+    (item_dir / LocalMedia.ITEM_INDEX_FILENAME).write_text("456\n")
+
+    local_media = _create_local_media(tmp_path, index_on_init=False)
+
+    assert local_media.is_locally_downloaded(Mock(item_id=123), item_dir) is True
+    assert local_media.media == {456: item_dir}
 
 
 def test_write_bandcamp_id_skips_empty_item_id(tmp_path):

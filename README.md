@@ -18,6 +18,14 @@ When called, `bandcampsync` will:
 4. Download the archive of missing items not downloaded already from your collection
 5. Unzip the archive and move the contents to the local media directory
 
+To avoid repeatedly scanning your full collection, BandcampSync writes a small
+checkpoint file at the root of your media directory:
+
+`/media/.bandcampsync-state.json`
+
+On the next run, purchase pagination stops as soon as this checkpoint is reached,
+so only new purchases are fetched.
+
 The media directory will have the following format:
 
 ```
