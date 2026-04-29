@@ -35,6 +35,7 @@ class Bandcamp:
         self.user_verified = False
         self.cookies = None
         self.purchases = []
+        self.collection_items = []
         self.load_cookies(cookies)
         identity = self.cookies.get("identity") if self.cookies else None
         if not identity:
@@ -255,10 +256,12 @@ class Bandcamp:
                 f"Duplicate name details: {duplicate.band_name} / {duplicate.item_title}: {', '.join(duplicate_details)}"
             )
 
-    def load_purchases(self):
+    def load_purchases(self, stop_when=None):
         """
         Loads all purchases on the authenticated account and returns a list of
         purchase data. Each purchase is a dict of data.
+        If stop_when is provided, it is called for every parsed BandcampItem and
+        should return True to stop pagination early.
         """
         if not self.is_authenticated:
             raise BandcampError(
@@ -266,11 +269,13 @@ class Bandcamp:
             )
         log.info(f"Loading purchases for user id: {self.user_id}")
         self.purchases = []
+        self.collection_items = []
         now = int(time())
         page_ts = 0
         token = f"{now}:{page_ts}:a::"
         per_page = 100
         items_by_title_key = {}
+        stop_loading = False
         while True:
             log.info(f"Requesting {per_page} purchases using token {token}")
             data = {
@@ -315,6 +320,10 @@ class Bandcamp:
                         f'Failed to locate item id for "{item.band_name} / {item.item_title}", skipping item...'
                     )
                     continue
+                self.collection_items.append(item)
+                if stop_when and stop_when(item):
+                    stop_loading = True
+                    break
                 download_url = self._resolve_download_url(item, redownload_urls)
                 if not download_url:
                     continue
@@ -325,6 +334,9 @@ class Bandcamp:
                     f"Found item: {item.band_name} / {item.item_title} (id:{item.item_id})"
                 )
                 self.purchases.append(item)
+            if stop_loading:
+                log.info("Stopping purchase pagination early due to stop condition")
+                break
 
         # De-duplicate multiple purchases sharing the same artist and title.
         self._deduplicate_purchases(items_by_title_key)
@@ -355,9 +367,8 @@ class Bandcamp:
                 try:
                     downloads = digital_item["downloads"]
                 except KeyError as e:
-                    raise BandcampError(
-                        "Failed to parse pagedata JSON, does not contain an "
-                        '"digital_items.downloads" key'
+                    raise BandcampDownloadUnavailable(
+                        f"No downloads listed for {item.band_name} / {item.item_title}"
                     ) from e
                 try:
                     download_format = downloads[encoding]

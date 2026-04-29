@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch, MagicMock
 from pathlib import Path
 import pytest
 from bandcampsync.sync import Syncer
-from bandcampsync.bandcamp import BandcampError
+from bandcampsync.bandcamp import BandcampDownloadUnavailable, BandcampError
 from bandcampsync.download import DownloadBadStatusCode, DownloadInvalidContentType
 
 
@@ -138,6 +138,29 @@ def test_sync_item_fails_after_max_retries(syncer, mock_bandcamp):
         assert mock_sleep.call_count == syncer.max_retries - 1
 
 
+def test_sync_item_does_not_retry_unavailable_download(syncer, mock_bandcamp):
+    item = Mock(
+        is_preorder=False,
+        band_name="Artist",
+        item_title="Album",
+        item_id=1,
+        item_type="album",
+        download_url="http://example.com/download",
+    )
+
+    mock_bandcamp.get_download_file_url.side_effect = BandcampDownloadUnavailable(
+        "No downloads listed"
+    )
+
+    with patch("bandcampsync.sync.time.sleep") as mock_sleep:
+        result = syncer.sync_item(item)
+
+    assert result is False
+    assert syncer.had_sync_errors is False
+    assert mock_bandcamp.get_download_file_url.call_count == 1
+    mock_sleep.assert_not_called()
+
+
 def test_sync_item_track_success(syncer, mock_bandcamp, tmp_path):
     item = Mock(
         is_preorder=False,
@@ -237,3 +260,36 @@ def test_sync_item_continues_if_writing_item_id_fails(syncer, mock_bandcamp):
         assert syncer.new_items_downloaded is True
         mock_write_id.assert_called_once()
         assert "Failed to write bandcamp item id" in mock_log_error.call_args[0][0]
+
+def test_sync_item_dry_run_no_side_effects(mock_bandcamp, tmp_path):
+    with patch("bandcampsync.sync.asyncio.run") as mock_run:
+        syncer = Syncer(
+            cookies="identity=test",
+            dir_path=tmp_path,
+            media_format="flac",
+            temp_dir_root=str(tmp_path),
+            ign_file_path=None,
+            ign_patterns="",
+            notify_url=None,
+            dry_run=True,
+        )
+        if mock_run.called:
+            coro = mock_run.call_args[0][0]
+            coro.close()
+
+    item = Mock(
+        is_preorder=False,
+        band_name="Artist",
+        item_title="Album",
+        item_id=1,
+        item_type="album",
+        folder_suffix="",
+        download_url="http://example.com/download",
+    )
+
+    with patch("bandcampsync.sync.download_file") as mock_download:
+        result = syncer.sync_item(item)
+
+    assert result is False
+    assert syncer.new_items_downloaded is False
+    assert not mock_download.called

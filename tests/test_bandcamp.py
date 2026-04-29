@@ -1,8 +1,9 @@
 import json
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
-from bandcampsync.bandcamp import Bandcamp, BandcampItem
+from bandcampsync.bandcamp import Bandcamp, BandcampDownloadUnavailable, BandcampItem
 
 
 def _load_payload(name):
@@ -75,3 +76,39 @@ def test_resolve_download_url_physical(bandcamp, physical_payload, physical_item
         physical_payload["redownload_urls"],
     )
     assert download_url is None
+
+
+def test_load_purchases_can_stop_at_physical_only_item(
+    bandcamp,
+    physical_payload,
+    physical_item,
+):
+    bandcamp._request = Mock(return_value=physical_payload)
+
+    bandcamp.load_purchases(
+        stop_when=lambda item: item.band_name == physical_item["band_name"]
+        and item.item_title == physical_item["item_title"]
+    )
+
+    assert [item.item_id for item in bandcamp.collection_items] == [
+        physical_item["item_id"]
+    ]
+    assert bandcamp.purchases == []
+
+
+def test_get_download_file_url_missing_downloads_is_unavailable(bandcamp):
+    item = BandcampItem(
+        {
+            "band_name": "Scuba",
+            "item_title": "Hardcore Heaven II",
+            "item_id": 123,
+            "download_url": "https://bandcamp.com/download/test",
+        }
+    )
+    bandcamp._request = Mock()
+    bandcamp._extract_pagedata_from_soup = Mock(
+        return_value={"digital_items": [{"item_id": 123}]}
+    )
+
+    with pytest.raises(BandcampDownloadUnavailable):
+        bandcamp.get_download_file_url(item)

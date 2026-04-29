@@ -1,5 +1,6 @@
 """Tests for Syncer."""
 
+from datetime import datetime
 from unittest.mock import Mock, patch
 import pytest
 from bandcampsync.sync import Syncer
@@ -105,3 +106,48 @@ def test_ignore_pattern(mock_bandcamp, tmp_path):
             coro.close()
 
     assert not syncer.new_items_downloaded
+
+
+def test_until_date_inclusive(mock_bandcamp, tmp_path):
+    mock_bandcamp.purchases = [
+        Mock(
+            is_preorder=False,
+            band_name="Artist A",
+            item_title="Album A",
+            item_id=1,
+            purchased="06 Feb 2026 19:06:47 GMT",
+        ),
+        Mock(
+            is_preorder=False,
+            band_name="Artist B",
+            item_title="Album B",
+            item_id=2,
+            purchased="06 Feb 2026 05:00:00 GMT",
+        ),
+        Mock(
+            is_preorder=False,
+            band_name="Artist C",
+            item_title="Album C",
+            item_id=3,
+            purchased="05 Feb 2026 12:00:00 GMT",
+        ),
+    ]
+
+    with patch("bandcampsync.sync.asyncio.run") as mock_run:
+        syncer = Syncer(
+            cookies="identity=test",
+            dir_path=tmp_path,
+            media_format="flac",
+            temp_dir_root=str(tmp_path),
+            ign_file_path=None,
+            ign_patterns="",
+            notify_url=None,
+            until_date=datetime.strptime("2026-02-06", "%Y-%m-%d").date(),
+        )
+        if mock_run.called:
+            coro = mock_run.call_args[0][0]
+            coro.close()
+
+    selected = syncer._select_items_to_sync()
+    assert [item.item_id for item in selected] == [1, 2]
+
