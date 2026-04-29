@@ -339,7 +339,7 @@ class Syncer:
                             f'Downloading item "{item.band_name} / {item.item_title}" (id:{item.item_id}) '
                             f"from {mask_sig(download_file_url)} to {temp_file.name}"
                         )
-                        download_file(download_file_url, temp_file)
+                        download_content_type = download_file(download_file_url, temp_file)
                         temp_file.seek(0)
                         temp_file_path = Path(temp_file.name)
                         if is_zip_file(temp_file_path):
@@ -369,7 +369,12 @@ class Syncer:
                                         self._record_sync_error(
                                             f"Failed to move {file_path} to {file_dest}: {e}"
                                         )
-                        elif item.item_type == "track":
+                        elif (
+                            item.item_type == "track"
+                            or download_content_type.startswith("audio/")
+                            # Bandcamp may serve Ogg Vorbis as application/ogg.
+                            or download_content_type == "application/ogg"
+                        ):
                             slug = item.item_title
                             if item.url_hints and isinstance(item.url_hints, dict):
                                 slug = item.url_hints.get("slug", item.item_title)

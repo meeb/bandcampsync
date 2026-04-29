@@ -190,6 +190,36 @@ def test_sync_item_track_success(syncer, mock_bandcamp, tmp_path):
         assert "track-slug.flac" in str(args[1])
 
 
+def test_sync_item_album_audio_file_success(syncer, mock_bandcamp, tmp_path):
+    item = Mock(
+        is_preorder=False,
+        band_name="Mala x Magugu",
+        item_title="MILITANT DON",
+        item_id=188280431,
+        item_type="album",
+        url_hints={"slug": "militant-don"},
+        download_url="http://example.com/download",
+    )
+
+    mock_bandcamp.get_download_file_url.return_value = "http://example.com/file"
+    mock_bandcamp.check_download_stat.return_value = "http://example.com/file_ok"
+
+    with (
+        patch(
+            "bandcampsync.sync.download_file",
+            return_value="audio/mpeg",
+        ),
+        patch("bandcampsync.sync.is_zip_file", return_value=False),
+        patch("bandcampsync.sync.copy_file") as mock_copy,
+    ):
+        result = syncer.sync_item(item, encoding="mp3-320")
+
+    assert result is True
+    assert syncer.new_items_downloaded is True
+    args, _ = mock_copy.call_args
+    assert "militant-don.mp3" in str(args[1])
+
+
 def test_sync_item_uses_encoding_parameter(syncer, mock_bandcamp):
     """sync_item uses the encoding kwarg, not self.media_format, when provided."""
     item = Mock(

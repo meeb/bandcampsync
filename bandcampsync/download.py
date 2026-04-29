@@ -88,6 +88,7 @@ def download_file(
     """
     text = True if "t" in mode else False
     data_streamed = 0
+    major_content_type = ""
     last_log = 0
     r = requests.get(url, stream=True, impersonate="chrome")
     try:
@@ -125,7 +126,7 @@ def download_file(
                     last_log = percent_complete
     finally:
         r.close()
-    return True
+    return major_content_type
 
 
 def is_zip_file(file_path):
