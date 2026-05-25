@@ -18,6 +18,14 @@ When called, `bandcampsync` will:
 4. Download the archive of missing items not downloaded already from your collection
 5. Unzip the archive and move the contents to the local media directory
 
+To avoid repeatedly scanning your full collection, BandcampSync writes a small
+checkpoint file at the root of your media directory:
+
+`/media/.bandcampsync-state.json`
+
+On the next run, purchase pagination stops as soon as this checkpoint is reached,
+so only new purchases are fetched.
+
 The media directory will have the following format:
 
 ```
@@ -146,8 +154,17 @@ items have been loaded, same as the `--notify-url` CLI argument.
 
 `CONCURRENCY` can be set to the number of concurrent downloads, defaults to `1`.
 
+`UNTIL_DATE` can be set to process purchases down to a purchase date in
+`YYYY-MM-DD` format, inclusive, same as the `--until-date` CLI argument.
+
+`DRY_RUN` can be set to true to list items that would be downloaded without
+downloading or writing files, same as the `--dry-run` CLI argument.
+
 `SKIP_ITEM_INDEX` can be set to true to rely exclusively on the ignore file to determine which items
 have been downloaded already, same as the `--skip-item-index` CLI argument.
+
+`SYNC_IGNORE_FILE` can be set to true to add already downloaded items found in
+the filesystem to the ignore file, same as the `--sync-ignore-file` CLI argument.
 
 
 ## Configuration

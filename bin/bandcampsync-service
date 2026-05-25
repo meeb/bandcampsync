@@ -11,6 +11,22 @@ from pathlib import Path
 from bandcampsync import version, logger, do_sync
 
 
+def parse_bool(value):
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def parse_until_date(value):
+    value = value.strip()
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError as e:
+        raise ValueError(f'Invalid UNTIL_DATE "{value}": {e}') from e
+
+
 log = logger.get_logger('service')
 
 
@@ -36,10 +52,13 @@ if __name__ == '__main__':
     exit_after_run_env = os.getenv('EXIT_AFTER_RUN', '0')
     temp_dir_env = os.getenv('TEMP_DIR', '')
     notify_url_env = os.getenv('NOTIFY_URL', '')
+    until_date = parse_until_date(os.getenv('UNTIL_DATE', ''))
+    dry_run = parse_bool(os.getenv('DRY_RUN', '0'))
     max_retries_env = os.getenv('MAX_RETRIES', '3')
     retry_wait_env = os.getenv('RETRY_WAIT', '5')
     concurrency_env = os.getenv('CONCURRENCY', '1')
-    skip_item_index_env = os.getenv('SKIP_ITEM_INDEX', False)
+    skip_item_index_env = os.getenv('SKIP_ITEM_INDEX', '0')
+    sync_ignore_file_env = os.getenv('SYNC_IGNORE_FILE', '0')
     try:
         max_retries = int(max_retries_env)
     except (ValueError, TypeError):
@@ -52,17 +71,16 @@ if __name__ == '__main__':
         concurrency = int(concurrency_env)
     except (ValueError, TypeError):
         concurrency = 1
-    try:
-        skip_item_index = bool(skip_item_index_env)
-    except (ValueError, TypeError):
-        skip_item_index = False
-
+    skip_item_index = parse_bool(skip_item_index_env)
+    sync_ignore_file = parse_bool(sync_ignore_file_env)
 
     cookies_path = Path(cookies_path_env).resolve()
     ign_file_path = Path(ign_file_path_env).resolve()
     dir_path = Path(dir_path_env).resolve()
     if skip_item_index and not ign_file_path:
-        raise ValueError("--skip-item-index was passed, but no ignore file path was passed. --skip-item-index requires an ignore file path (--ignore-file/-I)")
+        raise ValueError("SKIP_ITEM_INDEX was set, but no ignore file path was set. SKIP_ITEM_INDEX requires IGNORES_FILE")
+    if sync_ignore_file and not ign_file_path:
+        raise ValueError("SYNC_IGNORE_FILE was set, but no ignore file path was set. SYNC_IGNORE_FILE requires IGNORES_FILE")
     if not cookies_path.is_file():
         raise ValueError(f'Cookies file does not exist: {cookies_path}')
     if not dir_path.is_dir():
@@ -104,7 +122,22 @@ if __name__ == '__main__':
     try:
         while not catch_shutdown.shutdown:
             log.info(f'Starting synchronisation')
-            do_sync(cookies, dir_path, media_format_env, temp_dir, ign_file_path, ign_patterns, notify_url, concurrency, max_retries, retry_wait, skip_item_index)
+            do_sync(
+                cookies=cookies,
+                dir_path=dir_path,
+                media_format=media_format_env,
+                temp_dir_root=temp_dir,
+                ign_file_path=ign_file_path,
+                ign_patterns=ign_patterns,
+                notify_url=notify_url,
+                until_date=until_date,
+                dry_run=dry_run,
+                concurrency=concurrency,
+                max_retries=max_retries,
+                retry_wait=retry_wait,
+                skip_item_index=skip_item_index,
+                sync_ignore_file=sync_ignore_file,
+            )
             random_delay = randrange(0, 3600)
             time_now = datetime.now(tz).replace(microsecond=0)
             time_tomorrow = time_now + timedelta(days=1)

@@ -22,7 +22,14 @@ class LocalMedia:
 
     ITEM_INDEX_FILENAME = "bandcamp_item_id.txt"
 
-    def __init__(self, media_dir, ignores, skip_item_index, sync_ignore_file):
+    def __init__(
+        self,
+        media_dir,
+        ignores,
+        skip_item_index,
+        sync_ignore_file,
+        index_on_init=True,
+    ):
         self.media_dir = media_dir
         self.ignores = ignores
         self.media = {}
@@ -31,7 +38,7 @@ class LocalMedia:
         log.info(f"Local media directory: {self.media_dir}")
 
         # If the ignores file is empty, we need to traverse the filesystem anyway
-        if not skip_item_index or len(self.ignores.ids) < 1:
+        if index_on_init and (not skip_item_index or len(self.ignores.ids) < 1):
             self.index()
 
     def _clean_path(self, path_str):
@@ -95,6 +102,20 @@ class LocalMedia:
     def is_locally_downloaded(self, item, local_path):
         if item.item_id in self.media:
             return True
+        id_file = local_path / self.ITEM_INDEX_FILENAME
+        if id_file.is_file():
+            self.item_names.add((local_path.parent.name, local_path.name))
+            try:
+                item_id = self.read_item_id(id_file)
+            except ValueError as e:
+                log.warning(f"Skipping invalid item index file {id_file}: {e}")
+            else:
+                self.media[item_id] = local_path
+                if item_id == item.item_id:
+                    log.info(
+                        f"Detected locally downloaded media: {item_id} = {local_path}"
+                    )
+                    return True
         item_name = (local_path.parent.name, local_path.name)
         if item_name in self.item_names:
             log.info(
