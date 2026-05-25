@@ -41,6 +41,8 @@ if __name__ == '__main__':
         help='Skip indexing downloaded items in the filesystem; only use ignore file for to determining which items are downloaded already')
     parser.add_argument('--sync-ignore-file', action='store_true',
         help='Add already downloaded items found in filesystem to ignore file')
+    parser.add_argument('--skip-hidden', action='store_true',
+        help='Skip items that have the hidden flag set')
     args = parser.parse_args()
     if args.version:
         print(f'BandcampSync version: {version}', file=sys.stdout)
@@ -52,6 +54,7 @@ if __name__ == '__main__':
     media_format = args.format
     skip_item_index = args.skip_item_index
     sync_ignore_file = args.sync_ignore_file
+    skip_hidden = args.skip_hidden
 
     if skip_item_index and not ign_file_path:
         raise ValueError("--skip-item-index was passed, but no ignore file path was passed. --skip-item-index requires an ignore file path (--ignore-file/-I)")
@@ -97,6 +100,7 @@ if __name__ == '__main__':
         max_retries,
         retry_wait,
         skip_item_index,
-        sync_ignore_file
+        sync_ignore_file,
+        skip_hidden,
     )
     log.info(f'Done')

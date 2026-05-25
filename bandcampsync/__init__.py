@@ -18,6 +18,7 @@ def do_sync(
     retry_wait=5,
     skip_item_index=False,
     sync_ignore_file=False,
+    skip_hidden=False,
 ):
     Syncer(
         cookies,
@@ -32,6 +33,7 @@ def do_sync(
         retry_wait,
         skip_item_index,
         sync_ignore_file,
+        skip_hidden,
     )
 
     return True

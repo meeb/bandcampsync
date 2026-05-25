@@ -423,12 +423,16 @@ class BandcampItem:
         return self._data.get("sale_item_type")
 
     @property
-    def sale_item_id(self):
-        return self._data.get("sale_item_id")
+    def hidden(self):
+        return True if self._data.get("hidden", False) else False
 
     @property
     def token(self):
         return self._data.get("token")
+
+    @property
+    def download_url(self):
+        return self._data.get("download_url")
 
     @property
     def download_url(self):

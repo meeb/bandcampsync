@@ -230,6 +230,9 @@ items have been downloaded already; bandcampsync will not traverse your filesyst
 read the bandcamp_item_id.txt files. This option requires that you pass a path to an
 ignore file with `-I / --ignore-file`.
 
+When `--skip-hidden` is passed, any items in your Bandcamp collection that have the hidden
+flag set will be skipped during sync.
+
 
 You can notify an external HTTP server when new items have been loaded with `-n` or
 `--notify-url`.

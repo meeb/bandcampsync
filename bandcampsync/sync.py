@@ -38,6 +38,7 @@ class Syncer:
         retry_wait=5,
         skip_item_index=False,
         sync_ignore_file=False,
+        skip_hidden=False,
         auto_run=True,
     ):
         self.ignores = Ignores(ign_file_path=ign_file_path, ign_patterns=ign_patterns)
@@ -55,6 +56,7 @@ class Syncer:
         self.concurrency = max(1, concurrency)
         self.max_retries = max(1, max_retries)
         self.retry_wait = max(0, retry_wait)
+        self.skip_hidden = skip_hidden
 
         self.show_id_file_warning = False
         self.new_items_downloaded = False
@@ -82,6 +84,13 @@ class Syncer:
         local_path = self.local_media.get_path_for_purchase(item)
 
         # Check if any ignore pattern matches the band name
+        if self.skip_hidden and item.hidden:
+            log.info(
+                f'Item is hidden, skipping: "{item.band_name} / {item.item_title}" '
+                f"(id:{item.item_id})"
+            )
+            return False
+
         if self.ignores.is_ignored(item):
             if not self.show_id_file_warning and self.local_media.is_locally_downloaded(
                 item, local_path
