@@ -241,9 +241,12 @@ class Syncer:
 
     async def sync_items(self):
         """Syncs all items with optional concurrency."""
+        total_items = len(self.bandcamp.purchases)
         if self.concurrency == 1:
             # Sequential processing
-            for item in self.bandcamp.purchases:
+            for i, item in enumerate(self.bandcamp.purchases, 1):
+                percent = (i / total_items) * 100 if total_items else 0
+                log.info(f'Syncing item {i} of {total_items} ({percent:.1f}%)')
                 self.sync_item(item)
         else:
             # Concurrent processing with semaphore to limit concurrency
@@ -257,6 +260,7 @@ class Syncer:
 
             # Create tasks for all items
             tasks = [sync_with_semaphore(item) for item in self.bandcamp.purchases]
+            log.info(f'Syncing {total_items} items with concurrency {self.concurrency}')
 
             # Wait for all tasks to complete
             await asyncio.gather(*tasks)
