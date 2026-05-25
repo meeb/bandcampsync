@@ -50,9 +50,11 @@ def physical_item(physical_payload):
 def test_is_physical_purchase_true(physical_item):
     assert BandcampItem(physical_item).is_physical_purchase() is True
 
+
 # Tests if an item is _not_ a physical purchase (though doesn't necessarily include a digital component).
 def test_is_physical_purchase_false(digital_item):
     assert BandcampItem(digital_item).is_physical_purchase() is False
+
 
 # Tests if a download URL can be retrieved for a digital purchase.
 def test_resolve_download_url_digital(bandcamp, digital_payload, digital_item):
@@ -63,6 +65,7 @@ def test_resolve_download_url_digital(bandcamp, digital_payload, digital_item):
     )
     expected_key = _download_key(digital_item)
     assert download_url == digital_payload["redownload_urls"][expected_key]
+
 
 # Tests that no download URL can be retrieved for a physical-only purchase.
 def test_resolve_download_url_physical(bandcamp, physical_payload, physical_item):

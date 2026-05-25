@@ -29,7 +29,6 @@ class DownloadInvalidContentType(ValueError):
     pass
 
 
-
 class DownloadExpired(ValueError):
     pass
 
@@ -104,7 +103,9 @@ def download_file(
         if major_content_type == disallow_content_type:
             html_body = _read_html_body(r)
             if _is_expired_download_page(html_body):
-                raise DownloadExpired("Download expired and requires email confirmation on Bandcamp")
+                raise DownloadExpired(
+                    "Download expired and requires email confirmation on Bandcamp"
+                )
             raise DownloadInvalidContentType(
                 f"Invalid content type: {major_content_type}"
             )

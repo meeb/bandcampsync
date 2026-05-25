@@ -176,7 +176,9 @@ def test_sync_item_uses_encoding_parameter(syncer, mock_bandcamp):
         item_type="album",
         folder_suffix="",
     )
-    mock_bandcamp.get_download_file_url.side_effect = BandcampError("stop after first call")
+    mock_bandcamp.get_download_file_url.side_effect = BandcampError(
+        "stop after first call"
+    )
 
     syncer.sync_item(item, encoding="mp3-320")
 
@@ -194,7 +196,9 @@ def test_sync_item_falls_back_to_media_format_when_no_encoding(syncer, mock_band
         item_type="album",
         folder_suffix="",
     )
-    mock_bandcamp.get_download_file_url.side_effect = BandcampError("stop after first call")
+    mock_bandcamp.get_download_file_url.side_effect = BandcampError(
+        "stop after first call"
+    )
 
     syncer.sync_item(item)  # no encoding kwarg
 

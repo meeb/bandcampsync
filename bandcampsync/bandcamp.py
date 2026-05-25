@@ -322,7 +322,9 @@ class Bandcamp:
                 item.download_url = download_url
                 item_key = (item.band_name, item.item_title)
                 items_by_title_key.setdefault(item_key, []).append(item)
-                log.info(f"Found item: {item.band_name} / {item.item_title} (id:{item.item_id})")
+                log.info(
+                    f"Found item: {item.band_name} / {item.item_title} (id:{item.item_id})"
+                )
                 self.purchases.append(item)
 
         # De-duplicate multiple purchases sharing the same artist and title.
