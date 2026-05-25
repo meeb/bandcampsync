@@ -27,6 +27,9 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
+[tool.setuptools]
+packages = ["bandcampsync"]
+
 [project.urls]
 Homepage = "https://github.com/meeb/bandcampsync"
 Repository = "https://github.com/meeb/bandcampsync.git"
