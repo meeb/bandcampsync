@@ -36,7 +36,7 @@ class Bandcamp:
         self.cookies = None
         self.purchases = []
         self.load_cookies(cookies)
-        identity = self.cookies.get("identity")
+        identity = self.cookies.get("identity") if self.cookies else None
         if not identity:
             raise BandcampError(
                 "Cookie data does not contain an identity value, make sure your "
@@ -312,7 +312,6 @@ class Bandcamp:
                     continue
                 if item.item_id is None:
                     log.error(
-                        f"Failed to locate download URL for {band_name} / {title} "
                         f'Failed to locate item id for "{item.band_name} / {item.item_title}", skipping item...'
                     )
                     continue
@@ -448,7 +447,7 @@ class BandcampItem:
         self._data["folder_suffix"] = value
 
     def is_physical_purchase(self):
-        # Note that this only tells us that this is a physical purchase, not whether or not there's also a digital download.
+        # Note that this only tells us that this is a physical purchase, not if there's also a digital download
         item_type = self._data.get("item_type")
         if item_type:
             return item_type == "package"
