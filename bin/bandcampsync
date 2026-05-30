@@ -5,85 +5,139 @@ import sys
 import argparse
 from datetime import datetime
 from pathlib import Path
-from bandcampsync import version, logger, do_sync
+from bandcampsync import version, logger, do_sync, BandcampSyncOptions
 
 
-log = logger.get_logger('run')
+log = logger.get_logger("run")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        prog='bandcampsync',
-        description='Syncs media purcahsed on bandcamp.com with a local directory',
+        prog="bandcampsync",
+        description="Syncs media purcahsed on bandcamp.com with a local directory",
     )
-    parser.add_argument('-v', '--version', action='store_true',
-        help='Displays the bandcampsync version and exits')
-    parser.add_argument('-c', '--cookies', required=True,
-        help='Path to the cookies file')
-    parser.add_argument('-d', '--directory', required=True,
-        help='Path to the directory to download media to')
-    parser.add_argument('-I', '--ignore-file', default='',
-        help='Path to the ignore file')
-    parser.add_argument('-i', '--ignore', default='',
-        help='A space-delimited list of patterns matching artists to bypass')
-    parser.add_argument('-f', '--format', default='flac',
-        help='Media format to download, defaults to "flac"')
-    parser.add_argument('-t', '--temp-dir', default='',
-        help='Path to use for temporary downloads')
-    parser.add_argument('-n', '--notify-url', default='',
-        help='URL to notify with a GET request when any new downloads have completed')
-    parser.add_argument('-j', '--concurrency', type=int, default=1,
-        help='Number of concurrent downloads (default: 1)')
-    parser.add_argument('--until-date', default='',
-        help='Process purchases down to this purchase date (YYYY-MM-DD, inclusive)')
-    parser.add_argument('--dry-run', action='store_true',
-        help='List items that would be downloaded without downloading or writing files')
-    parser.add_argument('--max-retries', type=int, default=3,
-        help='Maximum number of retries for a download (default: 3)')
-    parser.add_argument('--retry-wait', type=int, default=5,
-        help='Number of seconds to wait between retries (default: 5)')
-    parser.add_argument('--skip-item-index', action='store_true',
-        help='Skip indexing downloaded items in the filesystem; only use ignore file for to determining which items are downloaded already')
-    parser.add_argument('--sync-ignore-file', action='store_true',
-        help='Add already downloaded items found in filesystem to ignore file')
-    parser.add_argument('--skip-hidden', action='store_true',
-        help='Skip items that have the hidden flag set')
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="store_true",
+        help="Displays the bandcampsync version and exits",
+    )
+    parser.add_argument(
+        "-c", "--cookies", required=True, help="Path to the cookies file"
+    )
+    parser.add_argument(
+        "-d",
+        "--directory",
+        required=True,
+        help="Path to the directory to download media to",
+    )
+    parser.add_argument(
+        "-I", "--ignore-file", default="", help="Path to the ignore file"
+    )
+    parser.add_argument(
+        "-i",
+        "--ignore",
+        default="",
+        help="A space-delimited list of patterns matching artists to bypass",
+    )
+    parser.add_argument(
+        "-f",
+        "--format",
+        default="flac",
+        help='Media format to download, defaults to "flac"',
+    )
+    parser.add_argument(
+        "-t", "--temp-dir", default="", help="Path to use for temporary downloads"
+    )
+    parser.add_argument(
+        "-n",
+        "--notify-url",
+        default="",
+        help="URL to notify with a GET request when any new downloads have completed",
+    )
+    parser.add_argument(
+        "-j",
+        "--concurrency",
+        type=int,
+        default=1,
+        help="Number of concurrent downloads (default: 1)",
+    )
+    parser.add_argument(
+        "--until-date",
+        default="",
+        help="Process purchases down to this purchase date (YYYY-MM-DD, inclusive)",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="List items that would be downloaded without downloading or writing files",
+    )
+    parser.add_argument(
+        "--max-retries",
+        type=int,
+        default=3,
+        help="Maximum number of retries for a download (default: 3)",
+    )
+    parser.add_argument(
+        "--retry-wait",
+        type=int,
+        default=5,
+        help="Number of seconds to wait between retries (default: 5)",
+    )
+    parser.add_argument(
+        "--skip-item-index",
+        action="store_true",
+        help="Skip indexing downloaded items in the filesystem; only use ignore file for to determining which items are downloaded already",
+    )
+    parser.add_argument(
+        "--sync-ignore-file",
+        action="store_true",
+        help="Add already downloaded items found in filesystem to ignore file",
+    )
+    parser.add_argument(
+        "--skip-hidden",
+        action="store_true",
+        help="Skip items that have the hidden flag set",
+    )
     args = parser.parse_args()
     if args.version:
-        print(f'BandcampSync version: {version}', file=sys.stdout)
+        print(f"BandcampSync version: {version}", file=sys.stdout)
         sys.exit(0)
+
     cookies_path = Path(args.cookies).resolve()
-    ign_file_path = Path(args.ignore_file).resolve() if args.ignore_file else None
-    dir_path = Path(args.directory).resolve()
-    ign_patterns = args.ignore
-    media_format = args.format
-    skip_item_index = args.skip_item_index
-    sync_ignore_file = args.sync_ignore_file
-    skip_hidden = args.skip_hidden
-
-    if skip_item_index and not ign_file_path:
-        raise ValueError("--skip-item-index was passed, but no ignore file path was passed. --skip-item-index requires an ignore file path (--ignore-file/-I)")
-    if sync_ignore_file and not ign_file_path:
-        raise ValueError("--sync-ignore-file was passed, but no ignore file path was passed. --sync-ignore-file requires an ignore file path (--ignore-file/-I)")
-
     if not cookies_path.is_file():
-        raise ValueError(f'Cookies file does not exist: {cookies_path}')
+        raise ValueError(f"Cookies file does not exist: {cookies_path}")
+    with open(cookies_path, "rt") as f:
+        cookies = f.read().strip()
+    log.info(f'Loaded cookies from "{cookies_path}"')
+
+    dir_path = Path(args.directory).resolve()
     if not dir_path.is_dir():
-        raise ValueError(f'Directory does not exist: {dir_path}')
+        raise ValueError(f"Directory does not exist: {dir_path}")
+
+    ign_file_path = Path(args.ignore_file).resolve() if args.ignore_file else None
+    if args.skip_item_index and not ign_file_path:
+        raise ValueError(
+            "--skip-item-index was passed, but no ignore file path was passed. --skip-item-index requires an ignore file path (--ignore-file/-I)"
+        )
+    if args.sync_ignore_file and not ign_file_path:
+        raise ValueError(
+            "--sync-ignore-file was passed, but no ignore file path was passed. --sync-ignore-file requires an ignore file path (--ignore-file/-I)"
+        )
+
     if args.ignore:
-        patterns = args.ignore
-        log.warning(f'BandcampSync is bypassing: {patterns}')
+        log.warning(f"BandcampSync is bypassing: {args.ignore}")
+
     if args.temp_dir:
         temp_dir = Path(args.temp_dir).resolve()
         if not temp_dir.is_dir():
-            raise ValueError(f'Temporary directory does not exist: {temp_dir}')
+            raise ValueError(f"Temporary directory does not exist: {temp_dir}")
     else:
         temp_dir = None
+
     if args.notify_url:
-        notify_url = args.notify_url
-        log.info(f'BandcampSync will notify: {notify_url}')
-    else:
-        notify_url = None
+        log.info(f"BandcampSync will notify: {args.notify_url}")
+
     if args.until_date:
         try:
             until_date = datetime.strptime(args.until_date, "%Y-%m-%d").date()
@@ -91,31 +145,28 @@ if __name__ == '__main__':
             raise ValueError(f'Invalid --until-date "{args.until_date}": {e}') from e
     else:
         until_date = None
-    concurrency = args.concurrency
-    max_retries = args.max_retries
-    retry_wait = args.retry_wait
-    dry_run = args.dry_run
-    if concurrency > 1:
-        log.info(f'BandcampSync will use {concurrency} concurrent downloads')
-    log.info(f'BandcampSync v{version} starting')
-    with open(cookies_path, 'rt') as f:
-        cookies = f.read().strip()
-    log.info(f'Loaded cookies from "{cookies_path}"')
-    do_sync(
+
+    if args.concurrency > 1:
+        log.info(f"BandcampSync will use {args.concurrency} concurrent downloads")
+
+    options = BandcampSyncOptions(
         cookies=cookies,
         dir_path=dir_path,
-        media_format=media_format,
+        media_format=args.format,
         temp_dir_root=temp_dir,
         ign_file_path=ign_file_path,
-        ign_patterns=ign_patterns,
-        notify_url=notify_url,
+        ign_patterns=args.ignore,
+        notify_url=args.notify_url,
         until_date=until_date,
-        dry_run=dry_run,
-        concurrency=concurrency,
-        max_retries=max_retries,
-        retry_wait=retry_wait,
-        skip_item_index=skip_item_index,
-        sync_ignore_file=sync_ignore_file,
-        skip_hidden=skip_hidden,
+        dry_run=args.dry_run,
+        concurrency=args.concurrency,
+        max_retries=args.max_retries,
+        retry_wait=args.retry_wait,
+        skip_item_index=args.skip_item_index,
+        sync_ignore_file=args.sync_ignore_file,
+        skip_hidden=args.skip_hidden,
     )
-    log.info(f'Done')
+
+    log.info(f"BandcampSync v{version} starting")
+    do_sync(options)
+    log.info("Done")

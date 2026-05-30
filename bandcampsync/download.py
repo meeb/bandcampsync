@@ -40,7 +40,8 @@ def _is_expired_download_page(html):
     reauth_error = soup.select_one("div.email-reauth-error")
     if not reauth_error:
         return False
-    style = (reauth_error.get("style") or "").replace(" ", "").lower()
+    style = str(reauth_error.get("style")) or ""
+    style = style.replace(" ", "").lower()
     return "display:none" not in style
 
 
@@ -49,7 +50,8 @@ def _fetch_html_body(url):
         return ""
     try:
         resp = requests.get(url, stream=False, impersonate="chrome")
-    except Exception:
+    except requests.exceptions.RequestException as e:
+        log.warning(f"Failed to fetch HTML body for: {url} ({e})")
         return ""
     try:
         return resp.text or ""
@@ -61,12 +63,14 @@ def _read_html_body(response):
     html_body = ""
     try:
         html_body = response.text or ""
-    except Exception:
+    except requests.exceptions.RequestException as e:
+        log.warning(f"Failed to read HTML body for: {response.url} ({e})")
         pass
     if not html_body:
         try:
             html_body = response.content.decode("utf-8", errors="replace")
-        except Exception:
+        except requests.exceptions.RequestException as e:
+            log.warning(f"Failed to decode HTML body for: {response.url} ({e})")
             pass
     if not html_body:
         html_body = _fetch_html_body(response.url)
@@ -83,12 +87,11 @@ def download_file(
 ):
     """
     Attempts to stream a download to an open target file handle in chunks. If the
-    request returns a disallowed content type then return a failed state with the
+    request returns a disallowed content type, then return a failed state with the
     response content.
     """
     text = True if "t" in mode else False
     data_streamed = 0
-    major_content_type = ""
     last_log = 0
     r = requests.get(url, stream=True, impersonate="chrome")
     try:

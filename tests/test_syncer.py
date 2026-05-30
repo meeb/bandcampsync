@@ -5,6 +5,7 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 import pytest
 from bandcampsync.sync import Syncer
+from bandcampsync.options import BandcampSyncOptions
 
 
 @pytest.fixture
@@ -18,15 +19,16 @@ def mock_bandcamp():
 @pytest.fixture
 def syncer_minimal(mock_bandcamp, tmp_path):
     with patch("bandcampsync.sync.asyncio.run") as mock_run:
-        s = Syncer(
+        options = BandcampSyncOptions(
             cookies="identity=test",
             dir_path=tmp_path,
             media_format="flac",
-            temp_dir_root=str(tmp_path),
+            temp_dir_root=tmp_path,
             ign_file_path=None,
             ign_patterns="",
             notify_url=None,
         )
+        s = Syncer(options, auto_run=True)
         if mock_run.called:
             coro = mock_run.call_args[0][0]
             coro.close()
@@ -39,15 +41,16 @@ def test_skips_preorder(mock_bandcamp, tmp_path):
     ]
 
     with patch("bandcampsync.sync.asyncio.run") as mock_run:
-        syncer = Syncer(
+        options = BandcampSyncOptions(
             cookies="identity=test",
             dir_path=tmp_path,
             media_format="flac",
-            temp_dir_root=str(tmp_path),
+            temp_dir_root=tmp_path,
             ign_file_path=None,
             ign_patterns="",
             notify_url=None,
         )
+        syncer = Syncer(options, auto_run=True)
         if mock_run.called:
             coro = mock_run.call_args[0][0]
             coro.close()
@@ -71,15 +74,16 @@ def test_skips_already_downloaded(mock_bandcamp, tmp_path):
     ]
 
     with patch("bandcampsync.sync.asyncio.run") as mock_run:
-        syncer = Syncer(
+        options = BandcampSyncOptions(
             cookies="identity=test",
             dir_path=tmp_path,
             media_format="flac",
-            temp_dir_root=str(tmp_path),
+            temp_dir_root=tmp_path,
             ign_file_path=None,
             ign_patterns="",
             notify_url=None,
         )
+        syncer = Syncer(options, auto_run=True)
         if mock_run.called:
             coro = mock_run.call_args[0][0]
             coro.close()
@@ -93,15 +97,16 @@ def test_ignore_pattern(mock_bandcamp, tmp_path):
     ]
 
     with patch("bandcampsync.sync.asyncio.run") as mock_run:
-        syncer = Syncer(
+        options = BandcampSyncOptions(
             cookies="identity=test",
             dir_path=tmp_path,
             media_format="flac",
-            temp_dir_root=str(tmp_path),
+            temp_dir_root=tmp_path,
             ign_file_path=None,
             ign_patterns="ignore_this",
             notify_url=None,
         )
+        syncer = Syncer(options, auto_run=True)
         if mock_run.called:
             coro = mock_run.call_args[0][0]
             coro.close()
@@ -135,16 +140,17 @@ def test_until_date_inclusive(mock_bandcamp, tmp_path):
     ]
 
     with patch("bandcampsync.sync.asyncio.run") as mock_run:
-        syncer = Syncer(
+        options = BandcampSyncOptions(
             cookies="identity=test",
             dir_path=tmp_path,
             media_format="flac",
-            temp_dir_root=str(tmp_path),
+            temp_dir_root=tmp_path,
             ign_file_path=None,
             ign_patterns="",
             notify_url=None,
             until_date=datetime.strptime("2026-02-06", "%Y-%m-%d").date(),
         )
+        syncer = Syncer(options, auto_run=True)
         if mock_run.called:
             coro = mock_run.call_args[0][0]
             coro.close()
@@ -185,15 +191,16 @@ def test_checkpoint_stops_selection(mock_bandcamp, tmp_path):
     ]
 
     with patch("bandcampsync.sync.asyncio.run") as mock_run:
-        syncer = Syncer(
+        options = BandcampSyncOptions(
             cookies="identity=test",
             dir_path=tmp_path,
             media_format="flac",
-            temp_dir_root=str(tmp_path),
+            temp_dir_root=tmp_path,
             ign_file_path=None,
             ign_patterns="",
             notify_url=None,
         )
+        syncer = Syncer(options, auto_run=True)
         if mock_run.called:
             coro = mock_run.call_args[0][0]
             coro.close()
@@ -210,15 +217,16 @@ def test_checkpoint_skips_initial_local_media_index(mock_bandcamp, tmp_path):
         patch("bandcampsync.sync.LocalMedia") as mock_local_media,
         patch("bandcampsync.sync.asyncio.run") as mock_run,
     ):
-        Syncer(
+        options = BandcampSyncOptions(
             cookies="identity=test",
             dir_path=tmp_path,
             media_format="flac",
-            temp_dir_root=str(tmp_path),
+            temp_dir_root=tmp_path,
             ign_file_path=None,
             ign_patterns="",
             notify_url=None,
         )
+        Syncer(options, auto_run=True)
         if mock_run.called:
             coro = mock_run.call_args[0][0]
             coro.close()

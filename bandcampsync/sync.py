@@ -4,6 +4,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
+from .options import BandcampSyncOptions
 from .logger import get_logger
 from .bandcamp import Bandcamp, BandcampError, BandcampDownloadUnavailable
 from .ignores import Ignores
@@ -29,38 +30,22 @@ class Syncer:
     STATE_FILENAME = ".bandcampsync-state.json"
     STATE_VERSION = 1
 
-    def __init__(
-        self,
-        cookies,
-        dir_path,
-        media_format,
-        temp_dir_root,
-        ign_file_path,
-        ign_patterns,
-        notify_url,
-        until_date=None,
-        dry_run=False,
-        concurrency=1,
-        max_retries=3,
-        retry_wait=5,
-        skip_item_index=False,
-        sync_ignore_file=False,
-        skip_hidden=False,
-        auto_run=True,
-    ):
-        self.ignores = Ignores(ign_file_path=ign_file_path, ign_patterns=ign_patterns)
-        self.sync_ignore_file = sync_ignore_file
-        self.media_dir = dir_path
-        self.media_format = media_format
-        self.temp_dir_root = temp_dir_root
-        self.ign_file_path = ign_file_path
-        self.notify_url = notify_url
-        self.until_date = until_date
-        self.dry_run = bool(dry_run)
-        self.concurrency = max(1, concurrency)
-        self.max_retries = max(1, max_retries)
-        self.retry_wait = max(0, retry_wait)
-        self.skip_hidden = skip_hidden
+    def __init__(self, options: BandcampSyncOptions, auto_run: bool = True):
+        self.ignores = Ignores(
+            ign_file_path=options.ign_file_path, ign_patterns=options.ign_patterns
+        )
+        self.sync_ignore_file = options.sync_ignore_file
+        self.media_dir = options.dir_path
+        self.media_format = options.media_format
+        self.temp_dir_root = options.temp_dir_root
+        self.ign_file_path = options.ign_file_path
+        self.notify_url = options.notify_url
+        self.until_date = options.until_date
+        self.dry_run = bool(options.dry_run)
+        self.concurrency = max(1, options.concurrency)
+        self.max_retries = max(1, options.max_retries)
+        self.retry_wait = max(0, options.retry_wait)
+        self.skip_hidden = options.skip_hidden
 
         self.show_id_file_warning = False
         self.new_items_downloaded = False
@@ -74,14 +59,14 @@ class Syncer:
         if not index_local_media:
             log.info("Collection checkpoint loaded; skipping initial local media index")
         self.local_media = LocalMedia(
-            media_dir=dir_path,
+            media_dir=options.dir_path,
             ignores=self.ignores,
-            skip_item_index=skip_item_index,
-            sync_ignore_file=sync_ignore_file,
+            skip_item_index=options.skip_item_index,
+            sync_ignore_file=options.sync_ignore_file,
             index_on_init=index_local_media,
         )
 
-        self.bandcamp = Bandcamp(cookies=cookies)
+        self.bandcamp = Bandcamp(cookies=options.cookies)
         self.bandcamp.verify_authentication()
         self.bandcamp.load_purchases(stop_when=self._should_stop_loading_purchase)
 
@@ -101,7 +86,8 @@ class Syncer:
     def state_file_path(self):
         return self.media_dir / self.STATE_FILENAME
 
-    def _item_token(self, item):
+    @staticmethod
+    def _item_token(item):
         token = getattr(item, "token", None)
         if isinstance(token, str) and token:
             return token
@@ -235,10 +221,10 @@ class Syncer:
             return [item for _, item, _ in indexed]
 
         def sort_key(entry):
-            _, _, purchase_dt = entry
-            if purchase_dt is None:
-                return (0, datetime.min.replace(tzinfo=timezone.utc))
-            return (1, purchase_dt)
+            _, _, purchase_datetime = entry
+            if purchase_datetime is None:
+                return 0, datetime.min.replace(tzinfo=timezone.utc)
+            return 1, purchase_datetime
 
         indexed.sort(key=sort_key, reverse=True)
         return [item for _, item, _ in indexed]
@@ -284,7 +270,7 @@ class Syncer:
 
         local_path = self.local_media.get_path_for_purchase(item)
 
-        # Check if any ignore pattern matches the band name
+        # Check if any "ignore" pattern matches the band name
         if self.skip_hidden and item.hidden:
             log.info(
                 f'Item is hidden, skipping: "{item.band_name} / {item.item_title}" '
@@ -411,9 +397,9 @@ class Syncer:
                             return False
 
                         if self.ign_file_path:
-                            # We assume that if you use an ignore file once, you'll
+                            # We assume that if you use an "ignore" file once, you'll
                             # keep using it forever (e.g. Docker).
-                            # In case you don't, you'll get warnings for missing id file
+                            # If you don't, you'll get a warning for the missing ID file
                             # on the items downloaded in the current session.
                             self.ignores.add(item)
                         else:
@@ -457,6 +443,7 @@ class Syncer:
                         f"(id:{item.item_id}), skipping"
                     )
                     return False
+        return False
 
     async def sync_items(self):
         """Syncs all items with optional concurrency."""
@@ -475,11 +462,11 @@ class Syncer:
                 # Concurrent processing with semaphore to limit concurrency
                 semaphore = asyncio.Semaphore(self.concurrency)
 
-                async def sync_with_semaphore(item):
+                async def sync_with_semaphore(_item):
                     async with semaphore:
                         # Run sync_item in executor since it's blocking I/O
                         loop = asyncio.get_event_loop()
-                        await loop.run_in_executor(None, self.sync_item, item)
+                        await loop.run_in_executor(None, self.sync_item, _item)
 
                 # Create tasks for all items
                 tasks = [sync_with_semaphore(item) for item in items]

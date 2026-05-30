@@ -3,6 +3,7 @@
 from unittest.mock import Mock, patch
 import pytest
 from bandcampsync.sync import Syncer
+from bandcampsync.options import BandcampSyncOptions
 from bandcampsync.bandcamp import BandcampDownloadUnavailable, BandcampError
 
 
@@ -22,17 +23,18 @@ def mock_bandcamp():
 def syncer(mock_bandcamp, tmp_path):
     # We need to mock asyncio.run(self.sync_items()) because it's called in __init__
     with patch("bandcampsync.sync.asyncio.run") as mock_run:
-        s = Syncer(
+        options = BandcampSyncOptions(
             cookies="identity=test",
             dir_path=tmp_path,
             media_format="flac",
-            temp_dir_root=str(tmp_path),
+            temp_dir_root=tmp_path,
             ign_file_path=None,
             ign_patterns="",
             notify_url=None,
             max_retries=2,
             retry_wait=0,
         )
+        s = Syncer(options, auto_run=True)
         # The call to Syncer() triggers self.sync_items() which returns a coroutine.
         # Since asyncio.run is mocked, this coroutine is never awaited, causing a warning.
         # We can get the coroutine object from the mock call and close it.
@@ -295,16 +297,17 @@ def test_sync_item_continues_if_writing_item_id_fails(syncer, mock_bandcamp):
 
 def test_sync_item_dry_run_no_side_effects(mock_bandcamp, tmp_path):
     with patch("bandcampsync.sync.asyncio.run") as mock_run:
-        syncer = Syncer(
+        options = BandcampSyncOptions(
             cookies="identity=test",
             dir_path=tmp_path,
             media_format="flac",
-            temp_dir_root=str(tmp_path),
+            temp_dir_root=tmp_path,
             ign_file_path=None,
             ign_patterns="",
             notify_url=None,
             dry_run=True,
         )
+        syncer = Syncer(options, auto_run=True)
         if mock_run.called:
             coro = mock_run.call_args[0][0]
             coro.close()

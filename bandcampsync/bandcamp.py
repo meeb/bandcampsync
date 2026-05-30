@@ -37,7 +37,9 @@ class Bandcamp:
         self.purchases = []
         self.collection_items = []
         self.load_cookies(cookies)
-        identity = self.cookies.get("identity") if self.cookies else None
+        identity = False
+        if self.cookies:
+            identity = self.cookies.get("identity") if self.cookies else None
         if not identity:
             raise BandcampError(
                 "Cookie data does not contain an identity value, make sure your "
@@ -46,7 +48,7 @@ class Bandcamp:
             )
         identity_snip = identity.value[:20]
         log.info(f"Located Bandcamp identity in cookies: {identity_snip}...")
-        # Create a requests session and map our SimpleCookie to it
+        # Create a "requests" session and map our SimpleCookie to it
         self.session = requests.Session(impersonate="chrome")
         for cookie_name, morsel in self.cookies.items():
             self.session.cookies.set(cookie_name, morsel.value)
@@ -58,7 +60,7 @@ class Bandcamp:
         except Exception as e:
             raise BandcampError(f"Failed to parse cookies string: {e}") from e
         if len(self.cookies) == 0:
-            # Failed to load any cookies, attempt to parse the cookies string as a Netscape cookies export
+            # Failed to load any cookies, attempt to parse the "cookies" string as a Netscape cookies export
             lines = cookies_str.strip().split("\n")
             for line in lines:
                 if line.startswith("#"):
@@ -101,7 +103,7 @@ class Bandcamp:
         self, method, url, data=None, json_data=None, is_json=False, as_raw=False
     ):
         try:
-            # The debug logs do not mask the URL which may be a security issue if you run
+            # The debug logs do not mask the URL, which may be a security issue if you run
             # with level=logging.DEBUG
             log.debug(f"Making {method} request to {url}")
             response = self.session.request(
@@ -127,7 +129,8 @@ class Bandcamp:
         else:
             return BeautifulSoup(response.text, "html.parser")
 
-    def _extract_pagedata_from_soup(self, soup, id_name="pagedata"):
+    @staticmethod
+    def _extract_pagedata_from_soup(soup, id_name="pagedata"):
         pagedata_tag = soup.find("div", id=id_name)
         if not pagedata_tag:
             raise BandcampError(
@@ -154,7 +157,8 @@ class Bandcamp:
         soup = BeautifulSoup(html, "html.parser")
         return self._extract_pagedata_from_soup(soup)
 
-    def _get_js_stat_url(self, body, download_url):
+    @staticmethod
+    def _get_js_stat_url(body, download_url):
         """
         Checks the "stat" download URL body, which is in JavaScript, for
         either the OK response or a new updated download URL.
@@ -174,7 +178,7 @@ class Bandcamp:
     def verify_authentication(self):
         """
         Loads the initial account and session data from a request to the index page
-        of bandcamp.com. When properly authenticated an HTML data attribute is present
+        of bandcamp.com. When properly authenticated, an HTML data attribute is present
         that contains account information in an encoded form.
         """
         url = self._construct_url("index")
@@ -211,7 +215,8 @@ class Bandcamp:
         )
         return True
 
-    def _resolve_download_url(self, item, redownload_urls):
+    @staticmethod
+    def _resolve_download_url(item, redownload_urls):
         sale_item_type = item.sale_item_type
         sale_item_id = item.sale_item_id
         if sale_item_type is None or sale_item_id is None:
@@ -233,7 +238,8 @@ class Bandcamp:
             return None
         return download_url
 
-    def _deduplicate_purchases(self, grouped_items):
+    @staticmethod
+    def _deduplicate_purchases(grouped_items):
         for item_key, items in grouped_items.items():
             count = len(items)
             if count == 1:
@@ -346,7 +352,6 @@ class Bandcamp:
     def get_download_file_url(self, item, encoding="flac"):
         soup = self._request("get", item.download_url)
         pagedata = self._extract_pagedata_from_soup(soup, id_name="pagedata")
-        download_url = None
         if not pagedata:
             raise BandcampError("No download information found for item")
         try:
@@ -379,19 +384,18 @@ class Bandcamp:
                         f"(available encodings: {encodings})"
                     ) from e
                 try:
-                    download_url = download_format["url"]
+                    return download_format["url"]
                 except KeyError as e:
                     raise BandcampError(
                         "Failed to parse pagedata JSON, does not contain an "
                         '"digital_items.downloads.[encoding].url" key'
                     ) from e
-                return download_url
         raise BandcampDownloadUnavailable("No download available for item")
 
     def check_download_stat(self, item, file_download_url):
         """
         Constructs the download "stat" URL and verifies the state of the download.
-        If the state is OK, return the existing URL (download is OK) otherwise wait
+        If the state is OK, return the existing URL (download is OK), otherwise wait
         for the stat to complete and return the new download URL.
         """
         download_url_parts = urlsplit(file_download_url)
