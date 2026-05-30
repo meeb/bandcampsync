@@ -12,6 +12,7 @@ on:
       - main
 
 jobs:
+
   test:
     runs-on: ubuntu-latest
     steps:
@@ -44,18 +45,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.REGISTRY_ACCESS_TOKEN }}
-
-      - name: Lowercase github username for ghcr
-        id: string
-        uses: ASzc/change-string-case-action@v7
-        with:
-          string: ${{ github.actor }}
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/${{ steps.string.outputs.lowercase }}/${{ env.IMAGE_NAME }}:latest
+          tags: ghcr.io/${{ github.actor }}/${{ env.IMAGE_NAME }}:latest
           build-args: |
             IMAGE_NAME=${{ env.IMAGE_NAME }}
