@@ -16,9 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Get master branch short commit ref
-        id: ref
-        run: echo "::set-output name=ref::$(git rev-parse --short ${{ github.sha }})"
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -59,8 +56,6 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/${{ steps.string.outputs.lowercase }}/${{ env.IMAGE_NAME }}:${{ steps.ref.outputs.ref }}
-          cache-from: type=registry,ref=ghcr.io/${{ steps.string.outputs.lowercase }}/${{ env.IMAGE_NAME }}:${{ steps.ref.outputs.ref }}
-          cache-to: type=inline
+          tags: ghcr.io/${{ steps.string.outputs.lowercase }}/${{ env.IMAGE_NAME }}:latest
           build-args: |
             IMAGE_NAME=${{ env.IMAGE_NAME }}
