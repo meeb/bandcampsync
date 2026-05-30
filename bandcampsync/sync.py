@@ -72,9 +72,7 @@ class Syncer:
         self.collection_checkpoint_token = self._load_collection_checkpoint()
         index_local_media = not self.collection_checkpoint_token
         if not index_local_media:
-            log.info(
-                "Collection checkpoint loaded; skipping initial local media index"
-            )
+            log.info("Collection checkpoint loaded; skipping initial local media index")
         self.local_media = LocalMedia(
             media_dir=dir_path,
             ignores=self.ignores,
@@ -82,7 +80,6 @@ class Syncer:
             sync_ignore_file=sync_ignore_file,
             index_on_init=index_local_media,
         )
-
 
         self.bandcamp = Bandcamp(cookies=cookies)
         self.bandcamp.verify_authentication()
@@ -123,7 +120,9 @@ class Syncer:
             log.warning(f'Failed to parse state file "{state_file}": {e}')
             return None
         if not isinstance(state, dict):
-            log.warning(f'Ignoring invalid state file "{state_file}": expected JSON object')
+            log.warning(
+                f'Ignoring invalid state file "{state_file}": expected JSON object'
+            )
             return None
         token = state.get("last_seen_token")
         if not isinstance(token, str) or not token:
@@ -192,7 +191,9 @@ class Syncer:
         if self.collection_checkpoint_token:
             token = self._item_token(item)
             if token and token == self.collection_checkpoint_token:
-                log.info("Reached last known collection checkpoint, stopping pagination")
+                log.info(
+                    "Reached last known collection checkpoint, stopping pagination"
+                )
                 return True
         return False
 
@@ -320,7 +321,7 @@ class Syncer:
             if self.dry_run:
                 log.info(
                     f'DRY RUN: would download "{item.band_name} / {item.item_title}" '
-                    f'(id:{item.item_id})'
+                    f"(id:{item.item_id})"
                 )
                 return False
             for attempt in range(self.max_retries):
@@ -339,7 +340,9 @@ class Syncer:
                             f'Downloading item "{item.band_name} / {item.item_title}" (id:{item.item_id}) '
                             f"from {mask_sig(download_file_url)} to {temp_file.name}"
                         )
-                        download_content_type = download_file(download_file_url, temp_file)
+                        download_content_type = download_file(
+                            download_file_url, temp_file
+                        )
                         temp_file.seek(0)
                         temp_file_path = Path(temp_file.name)
                         if is_zip_file(temp_file_path):
@@ -466,7 +469,7 @@ class Syncer:
                 # Sequential processing
                 for i, item in enumerate(items, 1):
                     percent = (i / total_items) * 100 if total_items else 0
-                    log.info(f'Syncing item {i} of {total_items} ({percent:.1f}%)')
+                    log.info(f"Syncing item {i} of {total_items} ({percent:.1f}%)")
                     self.sync_item(item)
             else:
                 # Concurrent processing with semaphore to limit concurrency
@@ -480,7 +483,9 @@ class Syncer:
 
                 # Create tasks for all items
                 tasks = [sync_with_semaphore(item) for item in items]
-                log.info(f'Syncing {total_items} items with concurrency {self.concurrency}')
+                log.info(
+                    f"Syncing {total_items} items with concurrency {self.concurrency}"
+                )
 
                 # Wait for all tasks to complete
                 await asyncio.gather(*tasks)
@@ -507,7 +512,6 @@ class Syncer:
 
         self._log_sync_error_summary()
         self._save_collection_checkpoint()
-
 
     def notify(self):
         if self.dry_run:

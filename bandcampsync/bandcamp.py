@@ -131,7 +131,7 @@ class Bandcamp:
         pagedata_tag = soup.find("div", id=id_name)
         if not pagedata_tag:
             raise BandcampError(
-                f"Failed to locate <div id=\"{id_name}\"> in HTML, this may "
+                f'Failed to locate <div id="{id_name}"> in HTML, this may '
                 "be an authentication issue or it may be that bandcamp.com has "
                 "updated their website and this tool needs to be updated."
             )

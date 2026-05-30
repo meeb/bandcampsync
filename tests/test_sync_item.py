@@ -292,6 +292,7 @@ def test_sync_item_continues_if_writing_item_id_fails(syncer, mock_bandcamp):
         mock_write_id.assert_called_once()
         assert "Failed to write bandcamp item id" in mock_log_error.call_args[0][0]
 
+
 def test_sync_item_dry_run_no_side_effects(mock_bandcamp, tmp_path):
     with patch("bandcampsync.sync.asyncio.run") as mock_run:
         syncer = Syncer(
