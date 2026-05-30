@@ -51,7 +51,7 @@ jobs:
         with:
           string: ${{ github.actor }}
       - name: Build and push
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
