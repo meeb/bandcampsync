@@ -13,10 +13,7 @@ runcontainer:
 
 run:
 	mkdir -p ./docker-downloads
-	cp ./bin/bandcampsync ./bcs
-	uv run ./bcs -c cookies.txt -d docker-downloads
-	rm ./bcs
-
+	uv run ./bin/bandcampsync -c cookies.txt -d docker-downloads
 
 test:
 	uv run python -m pytest -v

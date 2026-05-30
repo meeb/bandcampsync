@@ -160,7 +160,7 @@ cython_debug/
 #.idea/
 
 .idea/
+.DS_Store
 cookies.txt
 docker-config/
 docker-downloads/
-/bcs
