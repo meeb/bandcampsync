@@ -445,10 +445,6 @@ class BandcampItem:
     def download_url(self):
         return self._data.get("download_url")
 
-    @property
-    def download_url(self):
-        return self._data.get("download_url")
-
     @download_url.setter
     def download_url(self, value):
         self._data["download_url"] = value

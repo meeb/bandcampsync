@@ -1,11 +1,9 @@
 """Tests for Syncer's sync_item functionality and retry logic."""
 
-from unittest.mock import Mock, patch, MagicMock
-from pathlib import Path
+from unittest.mock import Mock, patch
 import pytest
 from bandcampsync.sync import Syncer
 from bandcampsync.bandcamp import BandcampDownloadUnavailable, BandcampError
-from bandcampsync.download import DownloadBadStatusCode, DownloadInvalidContentType
 
 
 @pytest.fixture
