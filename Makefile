@@ -13,23 +13,24 @@ runcontainer:
 
 run:
 	mkdir -p ./docker-downloads
-	uv run ./bin/bandcampsync -c cookies.txt -d docker-downloads
+	poetry run python ./bin/bandcampsync -c cookies.txt -d docker-downloads
+
 
 test:
-	uv run python -m pytest -v
+	poetry run pytest -v
 
 
 lint:
-	uvx ruff check
+	poetry run ruff check
 
 
 format:
-	uvx ruff format
+	poetry run ruff format
+
+
+typecheck:
+	poetry run mypy
 
 
 build:
-	uv build
-
-
-publish:
-	uv publish
+	poetry build

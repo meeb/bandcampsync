@@ -1,3 +1,11 @@
 *
 !entrypoint.sh
 !ignores.template.txt
+!pyproject.toml
+!poetry.lock
+!README.md
+!LICENSE
+!bandcampsync
+!bandcampsync/**
+!bin
+!bin/**

@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
 
-import sys
 import argparse
+import sys
 from datetime import datetime
 from pathlib import Path
-from bandcampsync import version, logger, do_sync, BandcampSyncOptions
 
+from bandcampsync import BandcampSyncOptions, do_sync, logger, version
 
 log = logger.get_logger("run")
 
@@ -22,18 +22,14 @@ if __name__ == "__main__":
         action="store_true",
         help="Displays the bandcampsync version and exits",
     )
-    parser.add_argument(
-        "-c", "--cookies", required=True, help="Path to the cookies file"
-    )
+    parser.add_argument("-c", "--cookies", required=True, help="Path to the cookies file")
     parser.add_argument(
         "-d",
         "--directory",
         required=True,
         help="Path to the directory to download media to",
     )
-    parser.add_argument(
-        "-I", "--ignore-file", default="", help="Path to the ignore file"
-    )
+    parser.add_argument("-I", "--ignore-file", default="", help="Path to the ignore file")
     parser.add_argument(
         "-i",
         "--ignore",
@@ -46,9 +42,7 @@ if __name__ == "__main__":
         default="flac",
         help='Media format to download, defaults to "flac"',
     )
-    parser.add_argument(
-        "-t", "--temp-dir", default="", help="Path to use for temporary downloads"
-    )
+    parser.add_argument("-t", "--temp-dir", default="", help="Path to use for temporary downloads")
     parser.add_argument(
         "-n",
         "--notify-url",
@@ -87,7 +81,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--skip-item-index",
         action="store_true",
-        help="Skip indexing downloaded items in the filesystem; only use ignore file for to determining which items are downloaded already",
+        help=(
+            "Skip indexing downloaded items in the filesystem; only use ignore file "
+            "for to determining which items are downloaded already"
+        ),
     )
     parser.add_argument(
         "--sync-ignore-file",
@@ -107,7 +104,7 @@ if __name__ == "__main__":
     cookies_path = Path(args.cookies).resolve()
     if not cookies_path.is_file():
         raise ValueError(f"Cookies file does not exist: {cookies_path}")
-    with open(cookies_path, "rt") as f:
+    with cookies_path.open() as f:
         cookies = f.read().strip()
     log.info(f'Loaded cookies from "{cookies_path}"')
 
@@ -118,11 +115,13 @@ if __name__ == "__main__":
     ign_file_path = Path(args.ignore_file).resolve() if args.ignore_file else None
     if args.skip_item_index and not ign_file_path:
         raise ValueError(
-            "--skip-item-index was passed, but no ignore file path was passed. --skip-item-index requires an ignore file path (--ignore-file/-I)"
+            "--skip-item-index was passed, but no ignore file path was passed. "
+            "--skip-item-index requires an ignore file path (--ignore-file/-I)"
         )
     if args.sync_ignore_file and not ign_file_path:
         raise ValueError(
-            "--sync-ignore-file was passed, but no ignore file path was passed. --sync-ignore-file requires an ignore file path (--ignore-file/-I)"
+            "--sync-ignore-file was passed, but no ignore file path was passed. "
+            "--sync-ignore-file requires an ignore file path (--ignore-file/-I)"
         )
 
     if args.ignore:

@@ -1,47 +1,66 @@
-[project]
+[tool.poetry]
 name = "bandcampsync"
 version = "0.8.0"
-authors = [
-  {name="meeb", email="meeb@meeb.org"},
-]
 description = "A Python module and script to synchronise media purchased on bandcamp.com with a local directory."
+authors = [
+  "meeb <meeb@meeb.org>",
+  "Nick Johnson <nicholas.anthony.j@gmail.com>",
+]
 readme = "README.md"
-requires-python = ">=3.10"
 license = "BSD-3-Clause"
-license-files = ["LICENSE",]
-dependencies = [
-    "beautifulsoup4>=4.14.3",
-    "curl-cffi>=0.14.0",
-]
-keywords = [
-  "bandcampsync",
-  "bandcamp",
-  "media",
-  "sync",
-]
-classifiers = [
-  "Development Status :: 5 - Production/Stable",
-  "Operating System :: OS Independent",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3",
-  "Topic :: Software Development :: Libraries :: Python Modules",
-]
+packages = [{include = "bandcampsync"}]
+homepage = "https://github.com/newplasticideas/bandcampsync"
+repository = "https://github.com/newplasticideas/bandcampsync.git"
+keywords = ["bandcampsync", "bandcamp", "media", "sync"]
 
-[tool.setuptools]
-packages = ["bandcampsync"]
+[tool.poetry.dependencies]
+python = "^3.10"
+beautifulsoup4 = "^4.14.3"
+curl-cffi = "^0.14.0"
 
-[project.urls]
-Homepage = "https://github.com/meeb/bandcampsync"
-Repository = "https://github.com/meeb/bandcampsync.git"
-Issues = "https://github.com/meeb/bandcampsync/issues"
+[tool.poetry.group.dev.dependencies]
+pytest = "^9.0.2"
+pytest-mock = "^3.15.1"
+pytest-cov = "^7.1.0"
+pre-commit = "^4.6.2"
+ruff = "^0.14.3"
+mypy = "^1.11"
 
-[dependency-groups]
-dev = [
-    "pytest>=9.0.2",
-    "pytest-mock>=3.15.1",
-    "ruff>=0.14.3",
-]
+[tool.poetry.scripts]
+bandcampsync-service = "bandcampsync.interface.service.entrypoint:main"
 
 [build-system]
-requires = ["setuptools >= 77.0.3"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "C4", "RUF", "PERF", "PIE", "PTH", "S", "TRY"]
+ignore = [
+    "S603",   # subprocess call - not user-controlled
+    "S607",   # partial executable path
+    "TRY003", # long exception messages inline - acceptable for this codebase
+    "N818",   # exception names without an "Error" suffix - inherited from upstream's public API
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S310", "S108"]
+
+[tool.mypy]
+files = ["bandcampsync"]
+python_version = "3.10"
+strict = true
+warn_unreachable = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["bandcampsync"]
+relative_files = true
+
+[tool.coverage.report]
+show_missing = true

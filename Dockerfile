@@ -1,8 +1,5 @@
 FROM debian:trixie-slim
 
-ARG REPOSITORY="meeb/bandcampsync"
-ARG VERSION="v0.8.0"
-
 ENV DEBIAN_FRONTEND="noninteractive" \
   HOME="/root" \
   LANGUAGE="en_US.UTF-8" \
@@ -19,7 +16,6 @@ RUN set -x && \
   locale-gen en_US.UTF-8 && \
   # Install required distro packages
   apt-get -y --no-install-recommends install \
-    git \
     gosu \
     python3 \
     python3-dev \
@@ -36,9 +32,13 @@ RUN set -x && \
 
 RUN set -x && \
   # Allow root to use sudo
-  echo "root  ALL = NOPASSWD: /bin/su ALL" >> /etc/sudoers && \
-  # Install BandcampSync
-  python3 -m pip install --break-system-packages git+https://github.com/${REPOSITORY}.git@${VERSION}#egg=bandcampsync
+  echo "root  ALL = NOPASSWD: /bin/su ALL" >> /etc/sudoers
+
+# Install BandcampSync from this checkout, not a pinned upstream git ref -
+# this is a fork with its own code, so the image has to reflect that.
+WORKDIR /src
+COPY . .
+RUN python3 -m pip install --break-system-packages .
 
 # Volumes
 VOLUME ["/config", "/downloads"]
@@ -47,6 +47,8 @@ VOLUME ["/config", "/downloads"]
 COPY entrypoint.sh /entrypoint.sh
 COPY ignores.template.txt /ignores.template.txt
 ENTRYPOINT ["/entrypoint.sh"]
+
+EXPOSE 8080
 
 # Run the service
 CMD ["bandcampsync-service"]
