@@ -250,6 +250,30 @@ Turned out low-risk: `domain/collection/download_purchase/*` only ever imported 
 
 ---
 
+## Test infrastructure: shared fixtures + factory_boy
+
+Ran after Phase 5, prompted by the amount of hand-rolled `_item()`/`_ctx()`/`_options()` helpers that had accumulated per test file (each redeclaring the same "valid `BandcampItem`"/"valid `BandcampSyncOptions`" shape with minor variations). Goal: every test file gets `mocker` (pytest-mock) plus a set of shared factory fixtures instead of its own local builders.
+
+**`tests/factories.py`** — [factory_boy](https://factoryboy.readthedocs.io/) `factory.Factory` subclasses, one per domain pydantic model that tests need to build:
+
+- `BandcampItemFactory` (→ `BandcampItem`), with `AlbumFactory`/`TrackFactory`/`PhysicalItemFactory` subclasses fixing `item_type`/`sale_item_type` for the common cases. Field defaults match real API shape verified during Phase 3 (see that section) — a fresh `BandcampItemFactory()` is a valid, fully-populated item with no overrides needed.
+- `make_raw_item(**overrides)` — same factory, `.model_dump()`'d back to a plain dict. For tests exercising interface-layer code that consumes *raw* JSON (e.g. `Bandcamp.load_purchases()`'s page-parsing) before it becomes a validated `BandcampItem`.
+- `IgnoreRulesFactory`, `IgnoreFileLayoutFactory`, `IgnoreFileWriterFactory`, `BandcampSyncOptionsFactory`, `PurchaseDownloadContextFactory` — one per remaining model type tests construct.
+- **Chosen over polyfactory**: polyfactory derives factories automatically from a pydantic schema (less boilerplate) but has no Django ORM integration; factory_boy needs the fields declared by hand but is the only option that would also support `factory.django.DjangoModelFactory` if a Django model ever enters this codebase. No library does both — factory_boy was picked as the single dependency that covers today's need and that hypothetical one.
+- `BandcampSyncOptionsFactory` deliberately does **not** declare a `dir_path` default — `BandcampSyncOptions.dir_path` has no default in the real model, so a caller that forgets to supply it gets an immediate `TypeError` instead of a silently-bogus options object.
+
+**`tests/conftest.py`** — exposes each factory class as a pytest fixture (`bandcamp_item_factory`, `album_factory`, `track_factory`, `physical_item_factory`, `raw_item_factory`, `ignore_rules_factory`, `ignore_file_writer_factory`, `purchase_download_context_factory`), plus:
+- `bandcamp_client` — a real `interface.bandcamp.Bandcamp` instance, pre-authenticated (`is_authenticated=True`, `user_id=1`), for interface-layer tests that need the real class rather than a mock.
+- `sync_options_factory` — thin closure over `BandcampSyncOptionsFactory` that defaults `dir_path`/`temp_dir_root` to pytest's `tmp_path`, so most call sites need zero overrides.
+
+`mocker` (from `pytest-mock`, already a dev dependency) is used in place of raw `unittest.mock.Mock`/`patch` everywhere in the migrated files, for its automatic per-test cleanup.
+
+**Pattern for new tests**: prefer these fixtures over local helpers. The one case that still needs a plain dict literal or post-construction mutation rather than the factory: exercising *invalid* data (a required field missing/`None`) — the pydantic model won't construct with it, so build via `raw_item_factory(...)` and then mutate the returned dict directly (e.g. `item["band_name"] = None`) before feeding it to interface-layer parsing code that runs before validation.
+
+**Migrated**: `tests/domain/local_media_entry/*`, `tests/domain/collection/download_purchase/*`, `tests/service/test_sync_collection.py`, `tests/service/test_prepare_local_media.py`, `tests/service/test_authenticate_and_load_collection.py`, `tests/interface/bandcamp/test_load_purchases.py`.
+
+---
+
 ## Dependency change
 
 `pyproject.toml`:

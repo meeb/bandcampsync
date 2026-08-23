@@ -26,6 +26,7 @@ pytest-cov = "^7.1.0"
 pre-commit = "^4.6.2"
 ruff = "^0.14.3"
 mypy = "^1.11"
+factory-boy = "^3.3.3"
 
 [tool.poetry.scripts]
 bandcampsync-service = "bandcampsync.interface.service.entrypoint:main"

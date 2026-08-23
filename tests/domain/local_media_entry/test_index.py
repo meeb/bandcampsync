@@ -1,7 +1,6 @@
 """Tests for bandcampsync.domain.local_media_entry.index."""
 
 from pathlib import Path
-from unittest.mock import Mock, patch
 
 import pytest
 
@@ -13,13 +12,6 @@ from bandcampsync.domain.local_media_entry import (
     path_for_purchase,
     read_item_id,
 )
-from tests.factories import make_bandcamp_item
-
-
-def _item(band_name="Band", item_title="Item", folder_suffix=""):
-    return make_bandcamp_item(
-        item_id=1, band_name=band_name, item_title=item_title, folder_suffix=folder_suffix
-    )
 
 
 def test_clean_path_strips_disallowed_punctuation():
@@ -34,13 +26,15 @@ def test_clean_format_leaves_plain_format_alone():
     assert clean_format("flac") == "flac"
 
 
-def test_path_for_purchase_combines_band_and_title():
-    path = path_for_purchase(Path("/media"), _item())
+def test_path_for_purchase_combines_band_and_title(bandcamp_item_factory):
+    item = bandcamp_item_factory(band_name="Band", item_title="Item")
+    path = path_for_purchase(Path("/media"), item)
     assert path == Path("/media/Band/Item")
 
 
-def test_path_for_purchase_includes_folder_suffix():
-    path = path_for_purchase(Path("/media"), _item(folder_suffix=" [123]"))
+def test_path_for_purchase_includes_folder_suffix(bandcamp_item_factory):
+    item = bandcamp_item_factory(band_name="Band", item_title="Item", folder_suffix=" [123]")
+    path = path_for_purchase(Path("/media"), item)
     assert path == Path("/media/Band/Item [123]")
 
 
@@ -76,24 +70,24 @@ def test_index_local_media_finds_items_with_id_files(tmp_path):
     assert ("Band", "Album") in index.item_names
 
 
-def test_index_local_media_skips_invalid_id_files(tmp_path):
+def test_index_local_media_skips_invalid_id_files(tmp_path, mocker):
     item_dir = tmp_path / "Band" / "Album"
     item_dir.mkdir(parents=True)
     (item_dir / "bandcamp_item_id.txt").write_text("not-an-int\n")
+    mock_warning = mocker.patch("bandcampsync.domain.local_media_entry.index.log.warning")
 
-    with patch("bandcampsync.domain.local_media_entry.index.log.warning") as mock_warning:
-        index = index_local_media(tmp_path)
+    index = index_local_media(tmp_path)
 
     assert index.by_item_id == {}
     assert ("Band", "Album") in index.item_names
     mock_warning.assert_called_once()
 
 
-def test_index_local_media_calls_on_item_discovered(tmp_path):
+def test_index_local_media_calls_on_item_discovered(tmp_path, mocker):
     item_dir = tmp_path / "Band" / "Album"
     item_dir.mkdir(parents=True)
     (item_dir / "bandcamp_item_id.txt").write_text("123\n")
-    on_item_discovered = Mock()
+    on_item_discovered = mocker.Mock()
 
     index_local_media(tmp_path, on_item_discovered=on_item_discovered)
 
