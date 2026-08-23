@@ -1,11 +1,11 @@
-"""Tests for bandcampsync.domain.file_transfer.response_body."""
+"""Tests for bandcampsync.interface.file_transfer.response_body."""
 
 from unittest.mock import Mock, patch
 
 from curl_cffi import requests
 
-import bandcampsync.domain.file_transfer.response_body as response_body_module
-from bandcampsync.domain.file_transfer.response_body import (
+import bandcampsync.interface.file_transfer.response_body as response_body_module
+from bandcampsync.interface.file_transfer.response_body import (
     read_response_body,
     refetch_response_body,
 )

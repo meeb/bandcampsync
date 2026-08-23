@@ -2,12 +2,12 @@ from typing import IO, Any
 
 from curl_cffi import requests
 
-from bandcampsync.domain.file_transfer.content_type_check import (
+from bandcampsync.interface.file_transfer.content_type_check import (
     major_content_type_of,
     raise_if_content_type_disallowed,
 )
-from bandcampsync.domain.file_transfer.response_status import raise_if_bad_status
-from bandcampsync.domain.file_transfer.write_chunks import write_response_chunks_to_file
+from bandcampsync.interface.file_transfer.response_status import raise_if_bad_status
+from bandcampsync.interface.file_transfer.write_chunks import write_response_chunks_to_file
 
 
 def stream_url_to_file(

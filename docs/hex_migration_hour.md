@@ -166,6 +166,20 @@ Deliberately separate from `BandcampSession` (interface segregation). The concre
 
 ---
 
+## Phase 3.5 — split `domain/file_transfer/` into domain (local/pure) + `interface/file_transfer/` (HTTP)
+
+Raised mid-session: `domain/file_transfer/` made real HTTP requests (`stream_to_file.py`, `response_body.py`'s `refetch_response_body`) and operated on HTTP response objects (`content_type_check.py`, `write_chunks.py`, `response_status.py`) - genuinely interface-shaped, not domain, and not Bandcamp-specific either (generic URL-to-disk transport). "Unless the file transfer stuff is very specifically bandcamp shaped, it doesn't belong in domain."
+
+**Split**:
+- **Stays in `domain/file_transfer/`** (local file / pure operations, no different in kind from what `LocalMedia`/`checkpoint.py` already do directly in domain): `archive.py` (zip extraction), `local_copy.py` (shutil copy/move), `url_masking.py` (pure string masking), `errors.py` (the `Transfer*` exception types - shared vocabulary both layers use).
+- **Moves to new `interface/file_transfer/`**: `stream_to_file.py`, `response_body.py`, `content_type_check.py`, `write_chunks.py`, `response_status.py`.
+
+Turned out low-risk: `domain/collection/download_purchase/*` only ever imported the local-file half (`copy_file`, `move_file`, `extract_zip_archive`, `is_zip_archive`, `mask_signed_url`, the `Transfer*` exception types) - none of it touches the HTTP-request-making half, so **no domain code needed to change**. Only `interface/bandcamp/mixins/download.py` (which calls `stream_url_to_file`) needed an import update.
+
+**Status: done** (committed).
+
+---
+
 ## Phase 4 — `domain/ignore_entry/`: same convention
 
 **Current**: `bandcampsync/domain/ignores.py` — one class conflating rule data (`ids`, `band_patterns`), the business predicate (`is_ignored`), and file-rewrite bookkeeping (`ign_lines`, `ign_insert_index`, `add()`).
@@ -240,3 +254,9 @@ ruff format --check bandcampsync/ tests/
 ```
 
 Pure refactor of internal domain/service/interface code, no user-facing behavior change — the test suite is the source of truth, no manual verification needed. Commit after each phase so a regression in a later phase is easy to bisect.
+
+---
+
+## Deferred follow-ups (noted, not scheduled)
+
+- **`record_error: Callable[[str], None]` threaded through domain functions** (`download_purchase.py`, `skip_rules.py`, `local_bookkeeping.py`, `download_attempt.py`, `place_single_track.py`, `place_zip_archive.py`, `file_placement.py`): each layer should probably have its own exception classes instead, with the service layer deciding whether to catch domain exceptions or let them bubble up to interface, rather than every domain function taking a callback to accumulate error strings. Explicitly deferred - not urgent, and any work here must keep behavior identical to the original bandcampsync (same error messages, same skip-vs-fail decisions), just with better structure.

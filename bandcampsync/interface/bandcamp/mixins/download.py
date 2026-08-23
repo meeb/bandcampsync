@@ -11,11 +11,12 @@ from bandcampsync.domain.bandcamp import (
     BandcampError,
 )
 from bandcampsync.domain.bandcamp_item import BandcampItem
-from bandcampsync.domain.file_transfer import TransferContentRejected, stream_url_to_file
+from bandcampsync.domain.file_transfer import TransferContentRejected
 from bandcampsync.interface.bandcamp.base import BandcampClientBase
 from bandcampsync.interface.bandcamp.expired_download_page import is_expired_download_page
 from bandcampsync.interface.bandcamp.pagedata import extract_pagedata_from_soup
 from bandcampsync.interface.bandcamp.stat_url import parse_js_stat_url
+from bandcampsync.interface.file_transfer import stream_url_to_file
 
 
 class DownloadMixin(BandcampClientBase):

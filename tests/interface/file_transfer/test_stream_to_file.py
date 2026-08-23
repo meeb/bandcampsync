@@ -1,13 +1,13 @@
-"""Tests for bandcampsync.domain.file_transfer.stream_to_file."""
+"""Tests for bandcampsync.interface.file_transfer.stream_to_file."""
 
 from io import BytesIO
 from unittest.mock import Mock, patch
 
 import pytest
 
-import bandcampsync.domain.file_transfer.stream_to_file as stream_to_file_module
+import bandcampsync.interface.file_transfer.stream_to_file as stream_to_file_module
 from bandcampsync.domain.file_transfer.errors import TransferBadStatusCode, TransferContentRejected
-from bandcampsync.domain.file_transfer.stream_to_file import stream_url_to_file
+from bandcampsync.interface.file_transfer.stream_to_file import stream_url_to_file
 
 
 def _response(status_code=200, content_type="audio/flac", chunks=(b"data",)):

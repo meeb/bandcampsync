@@ -1,8 +1,8 @@
 from typing import Any
 
 from bandcampsync.domain.file_transfer.errors import TransferContentRejected
-from bandcampsync.domain.file_transfer.response_body import read_response_body
 from bandcampsync.domain.utils import header_or_default
+from bandcampsync.interface.file_transfer.response_body import read_response_body
 
 
 def major_content_type_of(response: Any) -> str:

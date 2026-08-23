@@ -1,14 +1,14 @@
-"""Tests for bandcampsync.domain.file_transfer.content_type_check."""
+"""Tests for bandcampsync.interface.file_transfer.content_type_check."""
 
 from unittest.mock import Mock
 
 import pytest
 
-from bandcampsync.domain.file_transfer.content_type_check import (
+from bandcampsync.domain.file_transfer.errors import TransferContentRejected
+from bandcampsync.interface.file_transfer.content_type_check import (
     major_content_type_of,
     raise_if_content_type_disallowed,
 )
-from bandcampsync.domain.file_transfer.errors import TransferContentRejected
 
 
 def test_major_content_type_of_strips_charset_suffix():

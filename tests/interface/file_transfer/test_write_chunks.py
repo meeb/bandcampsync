@@ -1,9 +1,9 @@
-"""Tests for bandcampsync.domain.file_transfer.write_chunks."""
+"""Tests for bandcampsync.interface.file_transfer.write_chunks."""
 
 from io import BytesIO
 from unittest.mock import Mock
 
-from bandcampsync.domain.file_transfer.write_chunks import (
+from bandcampsync.interface.file_transfer.write_chunks import (
     content_length_of,
     write_response_chunks_to_file,
 )
