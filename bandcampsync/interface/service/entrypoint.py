@@ -106,7 +106,7 @@ def main() -> None:
         cookies = f.read().strip()
     log.info(f'Loaded cookies from "{cookies_path}"')
 
-    ign_file_path = Path(ign_file_path_env).resolve()
+    ign_file_path = Path(ign_file_path_env).resolve() if ign_file_path_env else None
     dir_path = Path(dir_path_env).resolve()
     if skip_item_index and not ign_file_path:
         raise ValueError(

@@ -105,6 +105,20 @@ def test_main_raises_when_directory_missing(tmp_path, monkeypatch):
         main()
 
 
+def test_main_raises_when_skip_item_index_without_ignores_file(tmp_path, monkeypatch):
+    _set_env(monkeypatch, tmp_path, SKIP_ITEM_INDEX="1", IGNORES_FILE="")
+
+    with pytest.raises(ValueError, match="SKIP_ITEM_INDEX"):
+        main()
+
+
+def test_main_raises_when_sync_ignore_file_without_ignores_file(tmp_path, monkeypatch):
+    _set_env(monkeypatch, tmp_path, SYNC_IGNORE_FILE="1", IGNORES_FILE="")
+
+    with pytest.raises(ValueError, match="SYNC_IGNORE_FILE"):
+        main()
+
+
 def test_main_raises_when_temp_dir_missing(tmp_path, monkeypatch):
     _set_env(monkeypatch, tmp_path, TEMP_DIR=str(tmp_path / "missing-temp"))
 
