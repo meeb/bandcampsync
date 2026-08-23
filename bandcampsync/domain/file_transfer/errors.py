@@ -1,5 +1,5 @@
 class TransferBadStatusCode(ValueError):
-    pass
+    """Raised when a streamed response has a non-200 HTTP status code."""
 
 
 class TransferContentRejected(ValueError):

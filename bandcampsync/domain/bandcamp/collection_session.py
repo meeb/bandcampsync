@@ -19,6 +19,15 @@ from bandcampsync.domain.bandcamp_item import BandcampItem
 
 
 class BandcampCollectionSession(Protocol):
+    """Bandcamp session operations needed to authenticate and paginate the
+    purchased collection.
+
+    Raises
+    ------
+    BandcampError
+        If Bandcamp's response cannot be parsed as expected.
+    """
+
     purchases: list[BandcampItem]
     collection_items: list[BandcampItem]
 

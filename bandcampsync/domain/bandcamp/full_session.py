@@ -18,4 +18,7 @@ from bandcampsync.domain.bandcamp.session import BandcampSession
 
 
 class BandcampFullSession(BandcampSession, BandcampCollectionSession, Protocol):
-    pass
+    """The union of BandcampSession and BandcampCollectionSession, satisfied
+    by a single Bandcamp instance that both authenticates/paginates the
+    collection and downloads individual purchases.
+    """

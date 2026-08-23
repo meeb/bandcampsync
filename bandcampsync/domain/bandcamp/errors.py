@@ -1,10 +1,10 @@
 class BandcampError(ValueError):
-    pass
+    """Base error for any failure interacting with the Bandcamp API."""
 
 
 class BandcampDownloadUnavailable(BandcampError):
-    pass
+    """Raised when Bandcamp reports no download is available for an item."""
 
 
 class BandcampDownloadExpired(BandcampError):
-    pass
+    """Raised when Bandcamp reports a purchase's download link has expired."""
