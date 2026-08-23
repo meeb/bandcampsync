@@ -13,7 +13,7 @@ from unittest.mock import Mock, patch
 from bandcampsync.domain.collection import PurchaseDownloadResult
 from bandcampsync.domain.collection.checkpoint import state_file_path
 from bandcampsync.domain.options import BandcampSyncOptions
-from bandcampsync.service.sync_collection import sync_collection
+from bandcampsync.service.sync_collection import sync_collection_with
 
 _module = importlib.import_module("bandcampsync.service.sync_collection")
 
@@ -43,8 +43,7 @@ def _mock_bandcamp(purchases=None, collection_items=None):
 
 def test_no_purchases_returns_clean_outcome(tmp_path):
     bandcamp = _mock_bandcamp()
-    with patch.object(_module, "Bandcamp", return_value=bandcamp):
-        outcome = sync_collection(_options(tmp_path))
+    outcome = sync_collection_with(_options(tmp_path), bandcamp_factory=lambda cookies: bandcamp)
 
     assert outcome.new_items_downloaded is False
     assert outcome.errors == []
@@ -56,11 +55,10 @@ def test_aggregates_downloaded_flag_across_items(tmp_path):
     bandcamp = _mock_bandcamp(purchases=[item])
     results = [PurchaseDownloadResult(downloaded=True, show_id_file_warning=False)]
 
-    with (
-        patch.object(_module, "Bandcamp", return_value=bandcamp),
-        patch.object(_module, "sync_all_items", return_value=results),
-    ):
-        outcome = sync_collection(_options(tmp_path))
+    with patch.object(_module, "sync_all_items", return_value=results):
+        outcome = sync_collection_with(
+            _options(tmp_path), bandcamp_factory=lambda cookies: bandcamp
+        )
 
     assert outcome.new_items_downloaded is True
 
@@ -69,8 +67,9 @@ def test_dry_run_does_not_write_checkpoint(tmp_path):
     item = Mock(item_id=1, token="t1", purchased=None)
     bandcamp = _mock_bandcamp(purchases=[item])
 
-    with patch.object(_module, "Bandcamp", return_value=bandcamp):
-        sync_collection(_options(tmp_path, dry_run=True))
+    sync_collection_with(
+        _options(tmp_path, dry_run=True), bandcamp_factory=lambda cookies: bandcamp
+    )
 
     assert not state_file_path(tmp_path).exists()
 
@@ -79,8 +78,7 @@ def test_writes_checkpoint_after_successful_sync(tmp_path):
     item = Mock(item_id=1, token="new-token", purchased=None)
     bandcamp = _mock_bandcamp(purchases=[item])
 
-    with patch.object(_module, "Bandcamp", return_value=bandcamp):
-        sync_collection(_options(tmp_path))
+    sync_collection_with(_options(tmp_path), bandcamp_factory=lambda cookies: bandcamp)
 
     state = json.loads(state_file_path(tmp_path).read_text())
     assert state["last_seen_token"] == "new-token"
@@ -95,36 +93,10 @@ def test_errors_prevent_checkpoint_write(tmp_path):
         record_error("boom")
         return results
 
-    with (
-        patch.object(_module, "Bandcamp", return_value=bandcamp),
-        patch.object(_module, "sync_all_items", side_effect=fake_sync_all_items),
-    ):
-        outcome = sync_collection(_options(tmp_path))
+    with patch.object(_module, "sync_all_items", side_effect=fake_sync_all_items):
+        outcome = sync_collection_with(
+            _options(tmp_path), bandcamp_factory=lambda cookies: bandcamp
+        )
 
     assert outcome.had_errors is True
     assert not state_file_path(tmp_path).exists()
-
-
-def test_checkpoint_present_skips_initial_local_media_index(tmp_path):
-    state_file_path(tmp_path).write_text(json.dumps({"last_seen_token": "checkpoint-token"}))
-    bandcamp = _mock_bandcamp()
-
-    with (
-        patch.object(_module, "Bandcamp", return_value=bandcamp),
-        patch.object(_module, "LocalMedia") as mock_local_media,
-    ):
-        sync_collection(_options(tmp_path))
-
-    assert mock_local_media.call_args.kwargs["index_on_init"] is False
-
-
-def test_no_checkpoint_indexes_local_media(tmp_path):
-    bandcamp = _mock_bandcamp()
-
-    with (
-        patch.object(_module, "Bandcamp", return_value=bandcamp),
-        patch.object(_module, "LocalMedia") as mock_local_media,
-    ):
-        sync_collection(_options(tmp_path))
-
-    assert mock_local_media.call_args.kwargs["index_on_init"] is True

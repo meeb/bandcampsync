@@ -22,8 +22,11 @@ class FanCollectionMixin(BandcampClientBase):
         If stop_when is provided, it is called for every parsed BandcampItem and
         should return True to stop pagination early.
         """
+        # request()'s own auth guard fires too late for us: fan_id below reads
+        # self.user_id before the first request is even built, so it needs
+        # authenticating up front rather than lazily on first dispatch.
         if not self.is_authenticated:
-            raise BandcampError("Authentication not verified, call load_pagedata() first")
+            self.verify_authentication()
         log.info(f"Loading purchases for user id: {self.user_id}")
         self.purchases = []
         self.collection_items = []

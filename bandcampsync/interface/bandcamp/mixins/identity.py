@@ -18,7 +18,9 @@ class IdentityMixin(BandcampClientBase):
         that contains account information in an encoded form.
         """
         url = construct_url("index")
-        soup = self.request("get", url)
+        # _dispatch(), not request(): request()'s auth guard would call back
+        # into this method while is_authenticated is still False, recursing.
+        soup = self._dispatch("get", url)
         pagedata = extract_pagedata_from_soup(soup, id_name="HomepageApp")
         try:
             pagecontext = pagedata["pageContext"]

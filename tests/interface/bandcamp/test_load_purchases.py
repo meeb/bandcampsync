@@ -34,12 +34,22 @@ def _page(items, redownload_urls=None):
     return {"items": items, "redownload_urls": redownload_urls or {}}
 
 
-def test_raises_when_not_authenticated():
+def test_authenticates_automatically_when_not_yet_authenticated():
     bandcamp = Bandcamp("identity=test")
     bandcamp.is_authenticated = False
 
-    with pytest.raises(BandcampError, match="Authentication not verified"):
-        bandcamp.load_purchases()
+    def fake_verify_authentication():
+        bandcamp.is_authenticated = True
+        bandcamp.user_id = 1
+        return True
+
+    bandcamp.verify_authentication = Mock(side_effect=fake_verify_authentication)
+    bandcamp.request = Mock(return_value=_page([]))
+
+    bandcamp.load_purchases()
+
+    bandcamp.verify_authentication.assert_called_once()
+    assert bandcamp.purchases == []
 
 
 def test_empty_first_page_yields_no_purchases(bandcamp):

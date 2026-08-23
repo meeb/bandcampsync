@@ -96,6 +96,14 @@ class BandcampClientBase:
             cookies[cookie_value.key] = cookie_value.value
         return cookies
 
+    def verify_authentication(self) -> bool:
+        """Declared here (rather than left to duck typing) purely so request()'s
+        auth guard below can call it across the mixin boundary with mypy's
+        blessing - IdentityMixin overrides this with the real implementation,
+        and every concrete client (Bandcamp) mixes IdentityMixin in.
+        """
+        raise NotImplementedError
+
     def request(
         self,
         method: str,
@@ -105,6 +113,30 @@ class BandcampClientBase:
         is_json: bool = False,
         as_raw: bool = False,
     ) -> Any:
+        """Dispatches an authenticated request, verifying authentication first
+        if it hasn't happened yet this session - callers don't need to
+        remember to call verify_authentication() themselves.
+        """
+        if not self.is_authenticated:
+            self.verify_authentication()
+        return self._dispatch(
+            method, url, data=data, json_data=json_data, is_json=is_json, as_raw=as_raw
+        )
+
+    def _dispatch(
+        self,
+        method: str,
+        url: str,
+        data: Any = None,
+        json_data: Any = None,
+        is_json: bool = False,
+        as_raw: bool = False,
+    ) -> Any:
+        """The actual HTTP call, with no auth guard - used by request() above,
+        and directly by verify_authentication() itself (which would otherwise
+        recurse into request()'s guard while it's still establishing whether
+        the session is authenticated).
+        """
         try:
             # The debug logs do not mask the URL, which may be a security issue if you run
             # with level=logging.DEBUG

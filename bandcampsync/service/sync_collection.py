@@ -5,27 +5,28 @@ got to, notify.
 """
 
 import asyncio
+from collections.abc import Callable
 
+from bandcampsync.domain.bandcamp import BandcampFullSession
 from bandcampsync.domain.collection import (
     PurchaseDateParser,
     PurchaseDownloadContext,
     PurchaseDownloadResult,
     SyncOutcome,
-    load_checkpoint,
     select_items_to_sync,
-    should_stop_loading_purchase,
 )
 from bandcampsync.domain.ignores import Ignores
 from bandcampsync.domain.logging_setup import get_logger
-from bandcampsync.domain.media import LocalMedia
 from bandcampsync.domain.options import BandcampSyncOptions
 from bandcampsync.interface.bandcamp import Bandcamp
+from bandcampsync.service.authenticate_and_load_collection import authenticate_and_load_collection
 from bandcampsync.service.log_id_file_migration_warning import (
     log_id_file_migration_warning_if_needed,
 )
 from bandcampsync.service.log_sync_error_summary import log_sync_error_summary
 from bandcampsync.service.maybe_notify import maybe_notify
 from bandcampsync.service.maybe_save_checkpoint import maybe_save_checkpoint
+from bandcampsync.service.prepare_local_media import prepare_local_media
 from bandcampsync.service.sync_all_items import sync_all_items
 
 log = get_logger("sync")
@@ -33,37 +34,30 @@ log = get_logger("sync")
 
 def sync_collection(options: BandcampSyncOptions) -> SyncOutcome:
     """Runs one full collection sync and returns what happened."""
+    return sync_collection_with(options)
+
+
+def sync_collection_with(
+    options: BandcampSyncOptions,
+    bandcamp_factory: Callable[[str], BandcampFullSession] = Bandcamp,
+) -> SyncOutcome:
+    """sync_collection with an injectable Bandcamp session factory for testing.
+
+    Args:
+        bandcamp_factory: Builds the authenticated Bandcamp session from
+            options.cookies. Swap in a fake to avoid hitting bandcamp.com.
+    """
     ignores = Ignores(ign_file_path=options.ign_file_path, ign_patterns=options.ign_patterns)
     dry_run = bool(options.dry_run)
     concurrency = max(1, options.concurrency)
     date_parser = PurchaseDateParser()
 
-    use_collection_checkpoint = not options.until_date
-    checkpoint_token = load_checkpoint(options.dir_path) if use_collection_checkpoint else None
-    index_local_media = not checkpoint_token
-    if not index_local_media:
-        log.info("Collection checkpoint loaded; skipping initial local media index")
-    local_media = LocalMedia(
-        media_dir=options.dir_path,
-        ignores=ignores,
-        skip_item_index=options.skip_item_index,
-        sync_ignore_file=options.sync_ignore_file,
-        index_on_init=index_local_media,
+    local_media, checkpoint_token, use_collection_checkpoint = prepare_local_media(options, ignores)
+
+    bandcamp = authenticate_and_load_collection(
+        bandcamp_factory, options, date_parser, checkpoint_token
     )
 
-    bandcamp = Bandcamp(cookies=options.cookies)
-    bandcamp.verify_authentication()
-    bandcamp.load_purchases(
-        stop_when=lambda item: should_stop_loading_purchase(
-            item, date_parser, checkpoint_token, options.until_date
-        )
-    )
-
-    if options.until_date:
-        log.info(
-            "Will stop after processing purchases on or after: "
-            f"{options.until_date.isoformat()} (purchase date GMT)"
-        )
     if dry_run:
         log.info("Dry run enabled: will not download or write files")
 
