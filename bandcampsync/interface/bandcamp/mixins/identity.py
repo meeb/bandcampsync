@@ -18,7 +18,7 @@ class IdentityMixin(BandcampClientBase):
         that contains account information in an encoded form.
         """
         url = construct_url("index")
-        soup = self._request("get", url)
+        soup = self.request("get", url)
         pagedata = extract_pagedata_from_soup(soup, id_name="HomepageApp")
         try:
             pagecontext = pagedata["pageContext"]

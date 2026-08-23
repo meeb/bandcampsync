@@ -1,6 +1,6 @@
 """Session state and low-level HTTP dispatch shared by every Bandcamp client
 mixin. Each mixin inherits from this (rather than assuming self.session/
-self._request exist via duck typing) so mypy can verify cross-mixin
+self.request exist via duck typing) so mypy can verify cross-mixin
 attribute access, and so Bandcamp's own MRO collapses the diamond into a
 single shared instance of this state.
 """
@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup
 from curl_cffi import requests
 
 from bandcampsync.domain.bandcamp import BandcampError, BandcampItem
-from bandcampsync.domain.download import mask_sig
+from bandcampsync.domain.file_transfer import mask_signed_url
 from bandcampsync.domain.logging_setup import get_logger
 
 log = get_logger("bandcamp")
@@ -89,14 +89,14 @@ class BandcampClientBase:
         with Path(file_path).open("w") as f:
             f.write(self.cookies_str)
 
-    def _plain_cookies(self) -> dict[str, str]:
+    def plain_cookies(self) -> dict[str, str]:
         assert self.cookies is not None  # noqa: S101 - always set by __init__ before this can be called
         cookies = {}
         for cookie_value in self.cookies.values():
             cookies[cookie_value.key] = cookie_value.value
         return cookies
 
-    def _request(
+    def request(
         self,
         method: str,
         url: str,
@@ -115,15 +115,17 @@ class BandcampClientBase:
             response = self.session.request(
                 cast(Any, method),
                 url,
-                cookies=self._plain_cookies(),
+                cookies=self.plain_cookies(),
                 data=data,
                 json=json_data,
             )
-        except Exception as e:
-            raise BandcampError(f"Failed to make HTTP request to {mask_sig(url)}: {e}") from e
+        except Exception as request_error:
+            raise BandcampError(
+                f"Failed to make HTTP request to {mask_signed_url(url)}: {request_error}"
+            ) from request_error
         if response.status_code != 200:
             raise BandcampError(
-                f"Failed to make HTTP request to {mask_sig(url)}: "
+                f"Failed to make HTTP request to {mask_signed_url(url)}: "
                 f"unknown status code response: {response.status_code}"
             )
         if as_raw:

@@ -41,7 +41,7 @@ class FanCollectionMixin(BandcampClientBase):
                 "older_than_token": token,
             }
             url = construct_url("collection_items")
-            data = self._request("POST", url, json_data=request_data, is_json=True)
+            data = self.request("POST", url, json_data=request_data, is_json=True)
             try:
                 items = data["items"]
             except KeyError as e:

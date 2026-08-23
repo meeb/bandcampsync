@@ -1,8 +1,8 @@
-"""Tests for bandcampsync.domain.sync.selection."""
+"""Tests for bandcampsync.domain.collection.purchase_selection."""
 
 from datetime import datetime
 
-from bandcampsync.domain.sync.selection import (
+from bandcampsync.domain.collection.purchase_selection import (
     PurchaseDateParser,
     item_token,
     ordered_purchases,

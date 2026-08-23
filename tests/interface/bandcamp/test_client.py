@@ -38,7 +38,7 @@ def physical_item(physical_payload):
 
 
 def test_load_purchases_can_stop_at_physical_only_item(bandcamp, physical_payload, physical_item):
-    bandcamp._request = Mock(return_value=physical_payload)
+    bandcamp.request = Mock(return_value=physical_payload)
 
     bandcamp.load_purchases(
         stop_when=lambda item: (
@@ -60,7 +60,7 @@ def test_get_download_file_url_missing_downloads_is_unavailable(bandcamp):
             "download_url": "https://bandcamp.com/download/test",
         }
     )
-    bandcamp._request = Mock()
+    bandcamp.request = Mock()
 
     with (
         patch(

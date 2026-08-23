@@ -5,6 +5,7 @@ from typing import cast
 
 from bandcampsync.domain.bandcamp import BandcampItem
 from bandcampsync.domain.logging_setup import get_logger
+from bandcampsync.domain.utils import atomic_write_text
 
 TEMPLATE_IGNORES_FILE = "/ignores.template.txt"
 # A comment containing 10 or more equals signs,
@@ -100,16 +101,10 @@ class Ignores:
         # them at the top, one after the other, within the session.
         self.ign_insert_index += 1
 
-        # Write to a tmp file then move it, to ensure it's atomic.
-        tmp_ignores_file = Path(f"{self.ign_file_path}.tmp")
         try:
-            with tmp_ignores_file.open("w", encoding="utf-8") as f:
-                f.writelines(self.ign_lines)
-            tmp_ignores_file.replace(self.ign_file_path)
+            atomic_write_text(self.ign_file_path, "".join(self.ign_lines))
         except Exception:
             log.exception(f"Error while adding {item.item_id} to the ignores.txt file")
-            if tmp_ignores_file.exists():
-                tmp_ignores_file.unlink()
 
     def is_ignored(self, item: BandcampItem) -> bool:
         # Check if the id is ignored

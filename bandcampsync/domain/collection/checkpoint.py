@@ -9,7 +9,6 @@ configure this same named logger. Calling it again here would double every
 log line.
 """
 
-import contextlib
 import json
 import logging
 from datetime import datetime, timezone
@@ -17,7 +16,8 @@ from pathlib import Path
 from typing import Any
 
 from bandcampsync.domain.bandcamp import BandcampItem
-from bandcampsync.domain.sync.selection import item_token
+from bandcampsync.domain.collection.purchase_selection import item_token
+from bandcampsync.domain.utils import atomic_write_text
 
 log = logging.getLogger("sync")
 
@@ -36,8 +36,8 @@ def load_checkpoint(media_dir: Path) -> str | None:
     try:
         with state_file.open(encoding="utf-8") as f:
             state = json.load(f)
-    except (OSError, json.JSONDecodeError) as e:
-        log.warning(f'Failed to parse state file "{state_file}": {e}')
+    except (OSError, json.JSONDecodeError) as parse_error:
+        log.warning(f'Failed to parse state file "{state_file}": {parse_error}')
         return None
     if not isinstance(state, dict):
         log.warning(f'Ignoring invalid state file "{state_file}": expected JSON object')
@@ -75,15 +75,8 @@ def save_checkpoint(media_dir: Path, item: BandcampItem, token: str) -> None:
         "updated_at_utc": datetime.now(timezone.utc).isoformat(),
     }
     state_file = state_file_path(media_dir)
-    temp_state_file = Path(f"{state_file}.tmp")
     try:
-        with temp_state_file.open("w", encoding="utf-8") as f:
-            json.dump(state, f, indent=2, sort_keys=True)
-            f.write("\n")
-        temp_state_file.replace(state_file)
+        atomic_write_text(state_file, json.dumps(state, indent=2, sort_keys=True) + "\n")
         log.info(f'Updated collection checkpoint: "{state_file}"')
     except OSError:
         log.exception(f'Failed to write collection checkpoint "{state_file}"')
-        if temp_state_file.exists():
-            with contextlib.suppress(OSError):
-                temp_state_file.unlink()

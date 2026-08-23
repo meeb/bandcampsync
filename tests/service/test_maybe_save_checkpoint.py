@@ -3,7 +3,7 @@
 import json
 from unittest.mock import Mock
 
-from bandcampsync.domain.sync.checkpoint import state_file_path
+from bandcampsync.domain.collection.checkpoint import state_file_path
 from bandcampsync.service.maybe_save_checkpoint import maybe_save_checkpoint
 
 

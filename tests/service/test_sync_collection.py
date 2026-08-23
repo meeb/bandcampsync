@@ -10,9 +10,9 @@ import importlib
 import json
 from unittest.mock import Mock, patch
 
+from bandcampsync.domain.collection import PurchaseDownloadResult
+from bandcampsync.domain.collection.checkpoint import state_file_path
 from bandcampsync.domain.options import BandcampSyncOptions
-from bandcampsync.domain.sync import ItemSyncResult
-from bandcampsync.domain.sync.checkpoint import state_file_path
 from bandcampsync.service.sync_collection import sync_collection
 
 _module = importlib.import_module("bandcampsync.service.sync_collection")
@@ -54,7 +54,7 @@ def test_no_purchases_returns_clean_outcome(tmp_path):
 def test_aggregates_downloaded_flag_across_items(tmp_path):
     item = Mock(item_id=1, token="t1", purchased=None)
     bandcamp = _mock_bandcamp(purchases=[item])
-    results = [ItemSyncResult(downloaded=True, show_id_file_warning=False)]
+    results = [PurchaseDownloadResult(downloaded=True, show_id_file_warning=False)]
 
     with (
         patch.object(_module, "Bandcamp", return_value=bandcamp),
@@ -89,7 +89,7 @@ def test_writes_checkpoint_after_successful_sync(tmp_path):
 def test_errors_prevent_checkpoint_write(tmp_path):
     item = Mock(item_id=1, token="new-token", purchased=None)
     bandcamp = _mock_bandcamp(purchases=[item])
-    results = [ItemSyncResult(downloaded=False, show_id_file_warning=False)]
+    results = [PurchaseDownloadResult(downloaded=False, show_id_file_warning=False)]
 
     def fake_sync_all_items(items, ctx, record_error, concurrency):
         record_error("boom")

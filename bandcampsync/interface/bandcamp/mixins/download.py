@@ -2,11 +2,18 @@
 purchased item's actual download URL.
 """
 
-from typing import cast
+from typing import IO, Any, cast
 from urllib.parse import urlsplit, urlunsplit
 
-from bandcampsync.domain.bandcamp import BandcampDownloadUnavailable, BandcampError, BandcampItem
+from bandcampsync.domain.bandcamp import (
+    BandcampDownloadExpired,
+    BandcampDownloadUnavailable,
+    BandcampError,
+    BandcampItem,
+)
+from bandcampsync.domain.file_transfer import TransferContentRejected, stream_url_to_file
 from bandcampsync.interface.bandcamp.base import BandcampClientBase
+from bandcampsync.interface.bandcamp.expired_download_page import is_expired_download_page
 from bandcampsync.interface.bandcamp.pagedata import extract_pagedata_from_soup
 from bandcampsync.interface.bandcamp.stat_url import parse_js_stat_url
 
@@ -15,7 +22,7 @@ class DownloadMixin(BandcampClientBase):
     def get_download_file_url(self, item: BandcampItem, encoding: str = "flac") -> str:
         # download_url is always set by this point: load_purchases() only appends an
         # item to self.purchases after resolving and assigning its download_url.
-        soup = self._request("get", cast(str, item.download_url))
+        soup = self.request("get", cast(str, item.download_url))
         pagedata = extract_pagedata_from_soup(soup, id_name="pagedata")
         if not pagedata:
             raise BandcampError("No download information found for item")
@@ -76,5 +83,17 @@ class DownloadMixin(BandcampClientBase):
                 "",
             )
         )
-        body = self._request("get", stat_url, as_raw=True)
+        body = self.request("get", stat_url, as_raw=True)
         return parse_js_stat_url(body, file_download_url)
+
+    def fetch_purchase_file(self, url: str, target: IO[Any]) -> str:
+        try:
+            return stream_url_to_file(url, target)
+        except TransferContentRejected as rejected_content:
+            if is_expired_download_page(rejected_content.body):
+                raise BandcampDownloadExpired(
+                    "Download expired and requires email confirmation on Bandcamp"
+                ) from rejected_content
+            raise BandcampError(
+                f"Invalid content type: {rejected_content.content_type}"
+            ) from rejected_content

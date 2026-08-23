@@ -6,19 +6,19 @@ got to, notify.
 
 import asyncio
 
-from bandcampsync.domain.ignores import Ignores
-from bandcampsync.domain.logging_setup import get_logger
-from bandcampsync.domain.media import LocalMedia
-from bandcampsync.domain.options import BandcampSyncOptions
-from bandcampsync.domain.sync import (
-    ItemSyncContext,
-    ItemSyncResult,
+from bandcampsync.domain.collection import (
     PurchaseDateParser,
+    PurchaseDownloadContext,
+    PurchaseDownloadResult,
     SyncOutcome,
     load_checkpoint,
     select_items_to_sync,
     should_stop_loading_purchase,
 )
+from bandcampsync.domain.ignores import Ignores
+from bandcampsync.domain.logging_setup import get_logger
+from bandcampsync.domain.media import LocalMedia
+from bandcampsync.domain.options import BandcampSyncOptions
 from bandcampsync.interface.bandcamp import Bandcamp
 from bandcampsync.service.log_id_file_migration_warning import (
     log_id_file_migration_warning_if_needed,
@@ -67,7 +67,7 @@ def sync_collection(options: BandcampSyncOptions) -> SyncOutcome:
     if dry_run:
         log.info("Dry run enabled: will not download or write files")
 
-    ctx = ItemSyncContext(
+    ctx = PurchaseDownloadContext(
         bandcamp=bandcamp,
         local_media=local_media,
         ignores=ignores,
@@ -89,7 +89,7 @@ def sync_collection(options: BandcampSyncOptions) -> SyncOutcome:
     items = select_items_to_sync(
         bandcamp.purchases, date_parser, checkpoint_token, options.until_date
     )
-    results: list[ItemSyncResult] = []
+    results: list[PurchaseDownloadResult] = []
     if not items:
         log.info("No purchases to sync after applying filters")
     else:

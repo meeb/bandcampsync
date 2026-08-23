@@ -1,9 +1,9 @@
-"""Tests for bandcampsync.domain.sync.checkpoint."""
+"""Tests for bandcampsync.domain.collection.checkpoint."""
 
 import json
 from unittest.mock import Mock
 
-from bandcampsync.domain.sync.checkpoint import (
+from bandcampsync.domain.collection.checkpoint import (
     load_checkpoint,
     resolve_checkpoint_candidate,
     save_checkpoint,
