@@ -13,7 +13,8 @@ from typing import Any, cast
 from bs4 import BeautifulSoup
 from curl_cffi import requests
 
-from bandcampsync.domain.bandcamp import BandcampError, BandcampItem
+from bandcampsync.domain.bandcamp import BandcampError
+from bandcampsync.domain.bandcamp_item import BandcampItem
 from bandcampsync.domain.file_transfer import mask_signed_url
 from bandcampsync.domain.logging_setup import get_logger
 

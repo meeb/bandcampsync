@@ -15,7 +15,7 @@ satisfies both structurally.
 from collections.abc import Callable
 from typing import Protocol
 
-from bandcampsync.domain.bandcamp.item import BandcampItem
+from bandcampsync.domain.bandcamp_item import BandcampItem
 
 
 class BandcampCollectionSession(Protocol):

@@ -1,9 +1,8 @@
 import re
 import shutil
 from pathlib import Path
-from typing import cast
 
-from bandcampsync.domain.bandcamp import BandcampItem
+from bandcampsync.domain.bandcamp_item import BandcampItem
 from bandcampsync.domain.logging_setup import get_logger
 from bandcampsync.domain.utils import atomic_write_text
 
@@ -115,11 +114,9 @@ class Ignores:
             )
             return True
 
-        # Check if any "ignore" pattern matches the band name. band_name is
-        # guaranteed non-None here: Bandcamp.load_purchases() already filters out
-        # items with no band_name before they can reach self.purchases.
+        # Check if any "ignore" pattern matches the band name.
         for pattern in self.band_patterns:
-            if pattern in cast(str, item.band_name).lower():
+            if pattern in item.band_name.lower():
                 log.warning(
                     f'Skipping item due to ignore pattern: "{pattern}" found in "{item.band_name}"'
                 )

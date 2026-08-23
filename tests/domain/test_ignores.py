@@ -4,12 +4,12 @@ from unittest.mock import patch
 
 import pytest
 
-from bandcampsync.domain.bandcamp import BandcampItem
+from bandcampsync.domain.bandcamp_item import BandcampItem
 from bandcampsync.domain.ignores import Ignores
 
 
 def _item(item_id=1, band_name="Band", item_title="Item"):
-    return BandcampItem({"item_id": item_id, "band_name": band_name, "item_title": item_title})
+    return BandcampItem(item_id=item_id, band_name=band_name, item_title=item_title)
 
 
 def test_no_ignore_file_means_nothing_is_ignored():

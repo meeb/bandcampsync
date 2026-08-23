@@ -1,9 +1,8 @@
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import cast
 from unicodedata import normalize
 
-from bandcampsync.domain.bandcamp import BandcampItem
+from bandcampsync.domain.bandcamp_item import BandcampItem
 from bandcampsync.domain.ignores import Ignores
 from bandcampsync.domain.logging_setup import get_logger
 
@@ -76,11 +75,9 @@ class LocalMedia:
                                     continue
                                 if self.sync_ignore_file:
                                     item = BandcampItem(
-                                        {
-                                            "item_id": item_id,
-                                            "band_name": child2.parent.name,
-                                            "item_title": child2.name,
-                                        }
+                                        item_id=item_id,
+                                        band_name=child2.parent.name,
+                                        item_title=child2.name,
                                     )
                                     if not self.ignores.is_ignored(item):
                                         self.ignores.add(item)
@@ -125,11 +122,9 @@ class LocalMedia:
         return False
 
     def get_path_for_purchase(self, item: BandcampItem) -> Path:
-        # band_name is guaranteed non-None here: Bandcamp.load_purchases() already
-        # filters out items with no band_name before they reach self.purchases.
         return (
             self.media_dir
-            / self._clean_path(cast(str, item.band_name))
+            / self._clean_path(item.band_name)
             / self._clean_path(f"{item.item_title}{item.folder_suffix}")
         )
 
@@ -138,9 +133,7 @@ class LocalMedia:
 
     def write_bandcamp_id(self, item: BandcampItem, dirpath: Path) -> bool:
         try:
-            # A genuinely None item_id still raises here (int(None) is a TypeError),
-            # caught below same as any other bad value - the cast doesn't change that.
-            item_id = int(cast(int, item.item_id))
+            item_id = int(item.item_id)
         except Exception as e:
             raise ValueError(
                 f'Failed to cast item ID for "{dirpath}" "{item.item_id}" as an int: {e}'

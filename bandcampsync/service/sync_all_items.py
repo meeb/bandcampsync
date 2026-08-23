@@ -6,7 +6,7 @@ import asyncio
 import logging
 from collections.abc import Callable
 
-from bandcampsync.domain.bandcamp import BandcampItem
+from bandcampsync.domain.bandcamp_item import BandcampItem
 from bandcampsync.domain.collection import (
     PurchaseDownloadContext,
     PurchaseDownloadResult,

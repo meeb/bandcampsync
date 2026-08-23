@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from bandcampsync.domain.bandcamp import BandcampItem
+from bandcampsync.domain.bandcamp_item import BandcampItem
 from bandcampsync.domain.collection.purchase_selection import item_token
 from bandcampsync.domain.utils import atomic_write_text
 
@@ -70,8 +70,8 @@ def save_checkpoint(media_dir: Path, item: BandcampItem, token: str) -> None:
     state: dict[str, Any] = {
         "version": STATE_VERSION,
         "last_seen_token": token,
-        "last_seen_item_id": getattr(item, "item_id", None),
-        "last_seen_purchased": getattr(item, "purchased", None),
+        "last_seen_item_id": item.item_id,
+        "last_seen_purchased": item.purchased,
         "updated_at_utc": datetime.now(timezone.utc).isoformat(),
     }
     state_file = state_file_path(media_dir)

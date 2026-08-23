@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from pathlib import Path
 
-from bandcampsync.domain.bandcamp import BandcampItem
+from bandcampsync.domain.bandcamp_item import BandcampItem
 from bandcampsync.domain.collection.download_purchase.context import PurchaseDownloadContext
 from bandcampsync.domain.collection.download_purchase.place_single_track import (
     place_single_track,

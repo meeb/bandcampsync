@@ -6,7 +6,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from bandcampsync.domain.bandcamp import BandcampDownloadUnavailable, BandcampItem
+from bandcampsync.domain.bandcamp import BandcampDownloadUnavailable
+from bandcampsync.domain.bandcamp_item import BandcampItem
 from bandcampsync.interface.bandcamp import Bandcamp
 
 
@@ -53,12 +54,10 @@ def test_load_purchases_can_stop_at_physical_only_item(bandcamp, physical_payloa
 
 def test_get_download_file_url_missing_downloads_is_unavailable(bandcamp):
     item = BandcampItem(
-        {
-            "band_name": "Scuba",
-            "item_title": "Hardcore Heaven II",
-            "item_id": 123,
-            "download_url": "https://bandcamp.com/download/test",
-        }
+        band_name="Scuba",
+        item_title="Hardcore Heaven II",
+        item_id=123,
+        download_url="https://bandcamp.com/download/test",
     )
     bandcamp.request = Mock()
 

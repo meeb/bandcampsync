@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from bandcampsync.domain.bandcamp import BandcampItem
+from bandcampsync.domain.bandcamp_item import BandcampItem
 from bandcampsync.interface.bandcamp import Bandcamp
 
 
@@ -16,7 +16,7 @@ def bandcamp() -> Bandcamp:
 
 
 def _item():
-    return BandcampItem({"band_name": "Band", "item_title": "Item", "item_id": 1})
+    return BandcampItem(band_name="Band", item_title="Item", item_id=1)
 
 
 def test_rewrites_download_path_to_statdownload(bandcamp):

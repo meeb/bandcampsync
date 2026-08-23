@@ -6,7 +6,7 @@ inward: domain declares what it needs, interface provides it.
 
 from typing import IO, Any, Protocol
 
-from bandcampsync.domain.bandcamp.item import BandcampItem
+from bandcampsync.domain.bandcamp_item import BandcampItem
 
 
 class BandcampSession(Protocol):

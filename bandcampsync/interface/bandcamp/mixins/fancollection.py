@@ -5,11 +5,14 @@ paginating through the account's purchased collection.
 from collections.abc import Callable
 from time import time
 
-from bandcampsync.domain.bandcamp import BandcampError, BandcampItem
+from bandcampsync.domain.bandcamp import BandcampError
+from bandcampsync.domain.bandcamp_item import (
+    BandcampItem,
+    build_items_from_page,
+    deduplicate_purchases,
+)
 from bandcampsync.domain.logging_setup import get_logger
 from bandcampsync.interface.bandcamp.base import BandcampClientBase
-from bandcampsync.interface.bandcamp.deduplication import deduplicate_purchases
-from bandcampsync.interface.bandcamp.download_resolution import resolve_download_url
 from bandcampsync.interface.bandcamp.urls import construct_url
 
 log = get_logger("bandcamp")
@@ -34,7 +37,6 @@ class FanCollectionMixin(BandcampClientBase):
         page_ts = 0
         token = f"{now}:{page_ts}:a::"
         per_page = 100
-        items_by_title_key: dict[tuple[str | None, str | None], list[BandcampItem]] = {}
         stop_loading = False
         while True:
             log.info(f"Requesting {per_page} purchases using token {token}")
@@ -46,10 +48,10 @@ class FanCollectionMixin(BandcampClientBase):
             url = construct_url("collection_items")
             data = self.request("POST", url, json_data=request_data, is_json=True)
             try:
-                items = data["items"]
+                raw_items = data["items"]
             except KeyError as e:
                 raise BandcampError("Failed to extract items from collection results page") from e
-            if not items:
+            if not raw_items:
                 log.info("Reached end of items")
                 break
             try:
@@ -58,43 +60,30 @@ class FanCollectionMixin(BandcampClientBase):
                 raise BandcampError(
                     "Failed to extract redownload_urls from collection results page"
                 ) from e
-            for item_data in items:
-                item = BandcampItem(item_data)
-                item_token = item.token
-                if item_token is not None:
-                    token = item_token
-                if not item.band_name:
-                    log.error("Failed to locate band name in item metadata, skipping item...")
-                    continue
-                if not item.item_title:
-                    log.error(
-                        f"Failed to locate title in item metadata (possibly a subscription?) "
-                        f'for "{item.band_name}", skipping item...'
-                    )
-                    continue
-                if item.item_id is None:
-                    log.error(
-                        f'Failed to locate item id for "{item.band_name} / {item.item_title}", '
-                        f"skipping item..."
-                    )
-                    continue
+
+            # The pagination cursor must advance from every raw item, valid
+            # or not - it's the raw JSON's own token, not the constructed
+            # (and possibly skipped) BandcampItem's.
+            for raw_item in raw_items:
+                raw_token = raw_item.get("token")
+                if raw_token is not None:
+                    token = raw_token
+
+            for item in build_items_from_page(raw_items, redownload_urls):
                 self.collection_items.append(item)
                 if stop_when and stop_when(item):
                     stop_loading = True
                     break
-                download_url = resolve_download_url(item, redownload_urls)
-                if not download_url:
-                    continue
-                item.download_url = download_url
-                item_key = (item.band_name, item.item_title)
-                items_by_title_key.setdefault(item_key, []).append(item)
-                log.info(f"Found item: {item.band_name} / {item.item_title} (id:{item.item_id})")
-                self.purchases.append(item)
+                if item.download_url:
+                    log.info(
+                        f"Found item: {item.band_name} / {item.item_title} (id:{item.item_id})"
+                    )
+                    self.purchases.append(item)
             if stop_loading:
                 log.info("Stopping purchase pagination early due to stop condition")
                 break
 
         # De-duplicate multiple purchases sharing the same artist and title.
-        deduplicate_purchases(items_by_title_key)
+        deduplicate_purchases(self.purchases)
         log.info(f"Loaded {len(self.purchases)} purchases")
         return True

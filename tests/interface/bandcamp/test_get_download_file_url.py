@@ -4,7 +4,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from bandcampsync.domain.bandcamp import BandcampDownloadUnavailable, BandcampError, BandcampItem
+from bandcampsync.domain.bandcamp import BandcampDownloadUnavailable, BandcampError
+from bandcampsync.domain.bandcamp_item import BandcampItem
 from bandcampsync.interface.bandcamp import Bandcamp
 
 _PATCH_TARGET = "bandcampsync.interface.bandcamp.mixins.download.extract_pagedata_from_soup"
@@ -19,12 +20,10 @@ def bandcamp() -> Bandcamp:
 
 def _item(item_id=123, download_url="https://bandcamp.com/download/test"):
     return BandcampItem(
-        {
-            "band_name": "Band",
-            "item_title": "Item",
-            "item_id": item_id,
-            "download_url": download_url,
-        }
+        band_name="Band",
+        item_title="Item",
+        item_id=item_id,
+        download_url=download_url,
     )
 
 

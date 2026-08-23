@@ -6,7 +6,7 @@ an --until-date cutoff.
 import logging
 from datetime import date, datetime, timezone
 
-from bandcampsync.domain.bandcamp import BandcampItem
+from bandcampsync.domain.bandcamp_item import BandcampItem
 
 log = logging.getLogger("sync")
 

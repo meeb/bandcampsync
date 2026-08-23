@@ -1,0 +1,221 @@
+{
+  "collectors": {},
+  "item_lookup": {
+    "3028132990": {
+      "item_type": "p",
+      "purchased": true
+    }
+  },
+  "items": [
+    {
+      "added": "02 May 2020 03:03:47 GMT",
+      "album_id": 3028132990,
+      "album_title": "Live In Zurich!",
+      "also_collected_count": 140,
+      "band_id": 3538965239,
+      "band_image_id": null,
+      "band_location": null,
+      "band_name": "Malcolm Middleton",
+      "band_url": "https://malcolmmiddleton.bandcamp.com",
+      "currency": "GBP",
+      "discount": null,
+      "download_available": true,
+      "fan_id": 5226501,
+      "featured_track": 1250951122,
+      "featured_track_duration": 305.387,
+      "featured_track_encodings_id": 2484363694,
+      "featured_track_is_custom": false,
+      "featured_track_license_id": null,
+      "featured_track_number": 11,
+      "featured_track_title": "A Brighter Beat",
+      "featured_track_url": null,
+      "genre_id": 2,
+      "gift_id": null,
+      "gift_recipient_name": null,
+      "gift_sender_name": null,
+      "gift_sender_note": null,
+      "has_digital_download": null,
+      "hidden": null,
+      "index": null,
+      "is_giftable": true,
+      "is_preorder": false,
+      "is_private": false,
+      "is_purchasable": true,
+      "is_set_price": true,
+      "is_subscriber_only": false,
+      "is_subscription_item": false,
+      "item_art": {
+        "art_id": 4200321582,
+        "thumb_url": "https://f4.bcbits.com/img/a4200321582_3.jpg",
+        "url": "https://f4.bcbits.com/img/a4200321582_9.jpg"
+      },
+      "item_art_id": 4200321582,
+      "item_art_ids": null,
+      "item_art_url": "https://f4.bcbits.com/img/a4200321582_9.jpg",
+      "item_id": 3366803807,
+      "item_title": "Live In Zurich!",
+      "item_type": "package",
+      "item_url": "https://malcolmmiddleton.bandcamp.com/album/live-in-zurich",
+      "label": null,
+      "label_id": null,
+      "licensed_item": null,
+      "listen_in_app_url": "https://bandcamp.com/redirect_to_app?fallback_url=https%3A%2F%2Fbandcamp.com%2Fthis_is_an_appstore_url%3Fapp%3Dfan_app&url=x-bandcamp%3A%2F%2Fshow_tralbum%3Ftralbum_type%3Da%26tralbum_id%3D3028132990%26play%3D1&sig=bbeadaf418a7f988fb052b29b61447e9",
+      "merch_ids": null,
+      "merch_snapshot": null,
+      "merch_sold_out": null,
+      "message_count": null,
+      "num_streamable_tracks": 12,
+      "package_details": null,
+      "price": 5.0,
+      "purchased": "18 Jan 2012 16:08:46 GMT",
+      "release_count": null,
+      "releases": null,
+      "require_email": null,
+      "sale_item_id": 2373867,
+      "sale_item_type": "p",
+      "service_name": null,
+      "service_url_fragment": null,
+      "token": "1326902926:3366803807:p::",
+      "tralbum_id": 3028132990,
+      "tralbum_type": "a",
+      "updated": "02 May 2020 03:03:47 GMT",
+      "url_hints": {
+        "custom_domain": null,
+        "custom_domain_verified": null,
+        "item_type": "a",
+        "slug": "live-in-zurich",
+        "subdomain": "malcolmmiddleton"
+      },
+      "variant_id": null,
+      "why": null
+    }
+  ],
+  "last_token": "1326902926:3366803807:p::",
+  "more_available": false,
+  "purchase_infos": {},
+  "redownload_urls": {},
+  "tracklists": {
+    "p3366803807": [
+      {
+        "artist": "Malcolm Middleton",
+        "duration": 469.427,
+        "file": {
+          "mp3-v0": "https://bandcamp.com/stream_redirect?enc=mp3-v0&track_id=2149785434&ts=1768864598&t=c5a91686ca7a336634c084cf572f549e384b960f"
+        },
+        "id": 2149785434,
+        "title": "Crappo The Clown",
+        "track_number": 1
+      },
+      {
+        "artist": "Malcolm Middleton",
+        "duration": 300.533,
+        "file": {
+          "mp3-v0": "https://bandcamp.com/stream_redirect?enc=mp3-v0&track_id=1245295522&ts=1768864598&t=3c4e377c3c9b30ea0283e31f0016b1f065b9f75f"
+        },
+        "id": 1245295522,
+        "title": "Choir",
+        "track_number": 2
+      },
+      {
+        "artist": "Malcolm Middleton",
+        "duration": 409.533,
+        "file": {
+          "mp3-v0": "https://bandcamp.com/stream_redirect?enc=mp3-v0&track_id=1096975252&ts=1768864598&t=4b2428f3a1623c6433bda4561dcbe467d2d16477"
+        },
+        "id": 1096975252,
+        "title": "Love Comes In Waves",
+        "track_number": 3
+      },
+      {
+        "artist": "Malcolm Middleton",
+        "duration": 227.667,
+        "file": {
+          "mp3-v0": "https://bandcamp.com/stream_redirect?enc=mp3-v0&track_id=1753859466&ts=1768864598&t=f1b6734a56ee066b94735217dc0cecaa00838690"
+        },
+        "id": 1753859466,
+        "title": "Subset Of The World",
+        "track_number": 4
+      },
+      {
+        "artist": "Malcolm Middleton",
+        "duration": 231.093,
+        "file": {
+          "mp3-v0": "https://bandcamp.com/stream_redirect?enc=mp3-v0&track_id=1085408301&ts=1768864598&t=23b3538d2eab3fa173ae49b1c1f4628b9889d56a"
+        },
+        "id": 1085408301,
+        "title": "One More Song",
+        "track_number": 5
+      },
+      {
+        "artist": "Malcolm Middleton",
+        "duration": 359.787,
+        "file": {
+          "mp3-v0": "https://bandcamp.com/stream_redirect?enc=mp3-v0&track_id=360585413&ts=1768864598&t=2dff4792ae7edf750986a19ba882c7102f231e68"
+        },
+        "id": 360585413,
+        "title": "Zero",
+        "track_number": 6
+      },
+      {
+        "artist": "Malcolm Middleton",
+        "duration": 260.48,
+        "file": {
+          "mp3-v0": "https://bandcamp.com/stream_redirect?enc=mp3-v0&track_id=2101014683&ts=1768864598&t=90310c4970b228717c76ac6e195cd32db2496bec"
+        },
+        "id": 2101014683,
+        "title": "Autumn",
+        "track_number": 7
+      },
+      {
+        "artist": "Malcolm Middleton",
+        "duration": 278.813,
+        "file": {
+          "mp3-v0": "https://bandcamp.com/stream_redirect?enc=mp3-v0&track_id=3473560572&ts=1768864598&t=ec03d1a25a4e7fec8a15df8611989c88b2d399b4"
+        },
+        "id": 3473560572,
+        "title": "Stay Close Sit Tight",
+        "track_number": 8
+      },
+      {
+        "artist": "Malcolm Middleton",
+        "duration": 402.893,
+        "file": {
+          "mp3-v0": "https://bandcamp.com/stream_redirect?enc=mp3-v0&track_id=3366625140&ts=1768864598&t=ecf4e31588c81db970637690356e29557e49b12b"
+        },
+        "id": 3366625140,
+        "title": "Box And Knife",
+        "track_number": 9
+      },
+      {
+        "artist": "Malcolm Middleton",
+        "duration": 177.96,
+        "file": {
+          "mp3-v0": "https://bandcamp.com/stream_redirect?enc=mp3-v0&track_id=3412223305&ts=1768864598&t=67160e7d156bad7bd0ea9cdb02e4deff47394571"
+        },
+        "id": 3412223305,
+        "title": "Blue Plastic Bags",
+        "track_number": 10
+      },
+      {
+        "artist": "Malcolm Middleton",
+        "duration": 305.387,
+        "file": {
+          "mp3-v0": "https://bandcamp.com/stream_redirect?enc=mp3-v0&track_id=1250951122&ts=1768864598&t=8b6f02047af3feca15d4ad44ec383e57368b8185"
+        },
+        "id": 1250951122,
+        "title": "A Brighter Beat",
+        "track_number": 11
+      },
+      {
+        "artist": "Malcolm Middleton",
+        "duration": 397.0,
+        "file": {
+          "mp3-v0": "https://bandcamp.com/stream_redirect?enc=mp3-v0&track_id=2896176902&ts=1768864598&t=dcfdd432e179248a58c27d96c33898ec9489cd65"
+        },
+        "id": 2896176902,
+        "title": "Don't Want To Sleep Tonight",
+        "track_number": 12
+      }
+    ]
+  }
+}

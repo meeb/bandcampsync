@@ -5,7 +5,6 @@ from bandcampsync.domain.bandcamp.errors import (
     BandcampError,
 )
 from bandcampsync.domain.bandcamp.full_session import BandcampFullSession
-from bandcampsync.domain.bandcamp.item import BandcampItem
 from bandcampsync.domain.bandcamp.session import BandcampSession
 
 __all__ = [
@@ -14,6 +13,5 @@ __all__ = [
     "BandcampDownloadUnavailable",
     "BandcampError",
     "BandcampFullSession",
-    "BandcampItem",
     "BandcampSession",
 ]

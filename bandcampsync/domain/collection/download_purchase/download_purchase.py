@@ -6,8 +6,8 @@ from bandcampsync.domain.bandcamp import (
     BandcampDownloadExpired,
     BandcampDownloadUnavailable,
     BandcampError,
-    BandcampItem,
 )
+from bandcampsync.domain.bandcamp_item import BandcampItem
 from bandcampsync.domain.collection.download_purchase.context import (
     PurchaseDownloadContext,
     PurchaseDownloadResult,

@@ -9,8 +9,8 @@ from bandcampsync.domain.bandcamp import (
     BandcampDownloadExpired,
     BandcampDownloadUnavailable,
     BandcampError,
-    BandcampItem,
 )
+from bandcampsync.domain.bandcamp_item import BandcampItem
 from bandcampsync.domain.file_transfer import TransferContentRejected, stream_url_to_file
 from bandcampsync.interface.bandcamp.base import BandcampClientBase
 from bandcampsync.interface.bandcamp.expired_download_page import is_expired_download_page

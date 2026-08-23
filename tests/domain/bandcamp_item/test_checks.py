@@ -1,11 +1,11 @@
-"""Tests for bandcampsync.domain.bandcamp.item.BandcampItem."""
+"""Tests for bandcampsync.domain.bandcamp_item.checks."""
 
 import json
 from pathlib import Path
 
 import pytest
 
-from bandcampsync.domain.bandcamp import BandcampItem
+from bandcampsync.domain.bandcamp_item import BandcampItem, is_physical_purchase
 
 
 def _load_payload(name):
@@ -24,8 +24,8 @@ def physical_item():
 
 
 def test_is_physical_purchase_true(physical_item):
-    assert BandcampItem(physical_item).is_physical_purchase() is True
+    assert is_physical_purchase(BandcampItem(**physical_item)) is True
 
 
 def test_is_physical_purchase_false(digital_item):
-    assert BandcampItem(digital_item).is_physical_purchase() is False
+    assert is_physical_purchase(BandcampItem(**digital_item)) is False

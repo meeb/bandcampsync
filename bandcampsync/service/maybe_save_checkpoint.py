@@ -3,7 +3,7 @@
 import logging
 from pathlib import Path
 
-from bandcampsync.domain.bandcamp import BandcampItem
+from bandcampsync.domain.bandcamp_item import BandcampItem
 from bandcampsync.domain.collection import resolve_checkpoint_candidate, save_checkpoint
 
 logger = logging.getLogger("sync")
