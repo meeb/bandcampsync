@@ -25,6 +25,7 @@ def _item_data(item_id, band_name="Band", item_title="Item", token="t", **overri
         "token": token,
         "sale_item_type": "a",
         "sale_item_id": item_id,
+        "purchased": "01 Jan 2026 00:00:00 GMT",
     }
     data.update(overrides)
     return data

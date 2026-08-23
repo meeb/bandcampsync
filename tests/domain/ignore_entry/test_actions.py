@@ -3,13 +3,8 @@
 import logging
 from unittest.mock import patch
 
-from bandcampsync.domain.bandcamp_item import BandcampItem
 from bandcampsync.domain.ignore_entry import IgnoreFileLayout, IgnoreFileWriter
 from bandcampsync.domain.ignore_entry.actions import record_ignored_item
-
-
-def _item(item_id=1, band_name="Band", item_title="Item"):
-    return BandcampItem(item_id=item_id, band_name=band_name, item_title=item_title)
 
 
 def _layout_from(ign_file_path, insert_index):
@@ -24,9 +19,8 @@ def test_record_ignored_item_writes_the_new_id_into_the_managed_section(tmp_path
         "# header\n# ==========================================================\n"
     )
     layout = _layout_from(ign_file_path, insert_index=2)
-    item = _item(item_id=99, band_name="Band", item_title="Item")
 
-    record_ignored_item(ign_file_path, layout, item)
+    record_ignored_item(ign_file_path, layout, 99, "Band", "Item")
 
     content = ign_file_path.read_text()
     assert "99  # Band / Item" in content
@@ -41,8 +35,8 @@ def test_writer_appends_each_call_directly_below_the_previous_one(tmp_path):
     layout = _layout_from(ign_file_path, insert_index=1)
     writer = IgnoreFileWriter(ign_file_path=ign_file_path, layout=layout)
 
-    writer.record(_item(item_id=1))
-    writer.record(_item(item_id=2))
+    writer.record(1, "Band", "Item")
+    writer.record(2, "Band", "Item")
 
     lines_after_delimiter = ign_file_path.read_text().splitlines()[1:]
     assert lines_after_delimiter[0].startswith("1")
@@ -52,7 +46,7 @@ def test_writer_appends_each_call_directly_below_the_previous_one(tmp_path):
 def test_writer_is_a_noop_without_an_ignore_file():
     writer = IgnoreFileWriter(ign_file_path=None, layout=IgnoreFileLayout())
 
-    writer.record(_item())  # must not raise
+    writer.record(1, "Band", "Item")  # must not raise
     assert writer.layout == IgnoreFileLayout()
 
 
@@ -67,6 +61,6 @@ def test_record_ignored_item_logs_but_does_not_raise_when_the_write_fails(tmp_pa
         "bandcampsync.domain.ignore_entry.actions.atomic_write_text",
         side_effect=OSError("disk full"),
     ):
-        record_ignored_item(ign_file_path, layout, _item(item_id=1))  # must not raise
+        record_ignored_item(ign_file_path, layout, 1, "Band", "Item")  # must not raise
 
     assert any("disk full" in r.message or r.exc_text for r in caplog.records if r.exc_info)

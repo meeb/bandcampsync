@@ -58,6 +58,11 @@ def test_get_download_file_url_missing_downloads_is_unavailable(bandcamp):
         item_title="Hardcore Heaven II",
         item_id=123,
         download_url="https://bandcamp.com/download/test",
+        item_type="album",
+        token="t",
+        sale_item_type="a",
+        sale_item_id=123,
+        purchased="01 Jan 2026 00:00:00 GMT",
     )
     bandcamp.request = Mock()
 

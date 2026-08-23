@@ -58,9 +58,8 @@ class LocalMedia:
         def on_item_discovered(item_id: int, band_name: str, item_title: str) -> None:
             if not sync_ignore_file:
                 return
-            item = BandcampItem(item_id=item_id, band_name=band_name, item_title=item_title)
-            if not is_ignored(ignore_rules, item):
-                ignore_file_writer.record(item)
+            if not is_ignored(ignore_rules, item_id, band_name, item_title):
+                ignore_file_writer.record(item_id, band_name, item_title)
 
         # If the "ignores" file is empty, we need to traverse the filesystem anyway
         if index_on_init and (not skip_item_index or len(ignore_rules.ids) < 1):

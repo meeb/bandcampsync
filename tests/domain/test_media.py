@@ -99,11 +99,7 @@ def test_sync_ignore_file_records_newly_discovered_items_not_already_ignored(tmp
     )
 
     assert local_media.media == {123: item_dir}
-    ignore_file_writer.record.assert_called_once()
-    recorded_item = ignore_file_writer.record.call_args[0][0]
-    assert recorded_item.item_id == 123
-    assert recorded_item.band_name == "Band"
-    assert recorded_item.item_title == "Album"
+    ignore_file_writer.record.assert_called_once_with(123, "Band", "Album")
 
 
 def test_sync_ignore_file_skips_items_already_ignored(tmp_path):

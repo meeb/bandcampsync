@@ -15,7 +15,9 @@ def test_adds_to_ignores_when_ignore_file_configured():
 
     mark_purchase_downloaded(purchase, ctx, Path("/media/band/item"), record_error)
 
-    ctx.ignore_file_writer.record.assert_called_once_with(purchase)
+    ctx.ignore_file_writer.record.assert_called_once_with(
+        purchase.item_id, purchase.band_name, purchase.item_title
+    )
     ctx.local_media.write_bandcamp_id.assert_not_called()
     record_error.assert_not_called()
 

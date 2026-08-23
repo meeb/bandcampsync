@@ -24,6 +24,11 @@ def _item(item_id=123, download_url="https://bandcamp.com/download/test"):
         item_title="Item",
         item_id=item_id,
         download_url=download_url,
+        item_type="album",
+        token="t",
+        sale_item_type="a",
+        sale_item_id=item_id,
+        purchased="01 Jan 2026 00:00:00 GMT",
     )
 
 

@@ -1,11 +1,11 @@
 """Tests for bandcampsync.domain.local_media_entry.checks."""
 
-from bandcampsync.domain.bandcamp_item import BandcampItem
 from bandcampsync.domain.local_media_entry import is_locally_downloaded
+from tests.factories import make_bandcamp_item
 
 
 def _item(item_id=123):
-    return BandcampItem(item_id=item_id, band_name="Band", item_title="Album")
+    return make_bandcamp_item(item_id=item_id, band_name="Band", item_title="Album")
 
 
 def test_true_when_item_id_already_known(tmp_path):

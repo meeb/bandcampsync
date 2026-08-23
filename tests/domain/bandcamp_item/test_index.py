@@ -1,6 +1,7 @@
 """Tests for bandcampsync.domain.bandcamp_item.index."""
 
 import json
+import logging
 from pathlib import Path
 
 import pytest
@@ -11,6 +12,7 @@ from bandcampsync.domain.bandcamp_item.index import (
     deduplicate_purchases,
     resolve_download_url,
 )
+from tests.factories import make_raw_item
 
 
 def _load_payload(name):
@@ -60,17 +62,14 @@ def test_resolve_download_url_physical(physical_payload, physical_item):
 
 
 def _item(item_id, **overrides):
-    data = {
-        "item_id": item_id,
-        "band_name": "Band",
-        "item_title": "Album",
-        "item_type": "album",
-        "download_url": "https://example.com/download",
-        "sale_item_type": "a",
-        "sale_item_id": item_id,
-    }
-    data.update(overrides)
-    return BandcampItem(**data)
+    return BandcampItem(
+        **make_raw_item(
+            item_id=item_id,
+            sale_item_id=item_id,
+            download_url="https://example.com/download",
+            **overrides,
+        )
+    )
 
 
 def test_dedup_leaves_unique_items_untouched():
@@ -97,14 +96,12 @@ def test_dedup_only_groups_items_sharing_band_and_title():
 
 
 def test_build_items_from_page_skips_entries_missing_required_fields(caplog):
-    import logging
-
     caplog.set_level(logging.ERROR, logger="bandcamp")
     raw_items = [
         {"item_id": 1, "item_title": "Album"},  # missing band_name
         {"item_id": 2, "band_name": "Band"},  # missing item_title
         {"band_name": "Band", "item_title": "Album"},  # missing item_id
-        {"item_id": 3, "band_name": "Band", "item_title": "Album"},
+        make_raw_item(item_id=3, band_name="Band", item_title="Album"),
     ]
 
     items = build_items_from_page(raw_items, redownload_urls={})
@@ -113,15 +110,7 @@ def test_build_items_from_page_skips_entries_missing_required_fields(caplog):
 
 
 def test_build_items_from_page_resolves_download_url():
-    raw_items = [
-        {
-            "item_id": 1,
-            "band_name": "Band",
-            "item_title": "Album",
-            "sale_item_type": "a",
-            "sale_item_id": 1,
-        }
-    ]
+    raw_items = [make_raw_item(item_id=1, sale_item_type="a", sale_item_id=1)]
 
     items = build_items_from_page(raw_items, redownload_urls={"a1": "https://example.com/dl"})
 

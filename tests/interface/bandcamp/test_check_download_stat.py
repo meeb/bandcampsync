@@ -16,7 +16,16 @@ def bandcamp() -> Bandcamp:
 
 
 def _item():
-    return BandcampItem(band_name="Band", item_title="Item", item_id=1)
+    return BandcampItem(
+        band_name="Band",
+        item_title="Item",
+        item_id=1,
+        item_type="album",
+        token="t",
+        sale_item_type="a",
+        sale_item_id=1,
+        purchased="01 Jan 2026 00:00:00 GMT",
+    )
 
 
 def test_rewrites_download_path_to_statdownload(bandcamp):

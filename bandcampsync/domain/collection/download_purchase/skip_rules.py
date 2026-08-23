@@ -24,7 +24,7 @@ def find_skip_reason(
         )
         return PurchaseDownloadResult(downloaded=False, show_id_file_warning=False)
 
-    if is_ignored(ctx.ignore_rules, purchase):
+    if is_ignored(ctx.ignore_rules, purchase.item_id, purchase.band_name, purchase.item_title):
         show_id_file_warning = ctx.local_media.is_locally_downloaded(purchase, local_path)
         return PurchaseDownloadResult(downloaded=False, show_id_file_warning=show_id_file_warning)
 

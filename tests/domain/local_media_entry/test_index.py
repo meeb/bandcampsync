@@ -5,7 +5,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from bandcampsync.domain.bandcamp_item import BandcampItem
 from bandcampsync.domain.local_media_entry import (
     clean_format,
     clean_path,
@@ -14,10 +13,11 @@ from bandcampsync.domain.local_media_entry import (
     path_for_purchase,
     read_item_id,
 )
+from tests.factories import make_bandcamp_item
 
 
 def _item(band_name="Band", item_title="Item", folder_suffix=""):
-    return BandcampItem(
+    return make_bandcamp_item(
         item_id=1, band_name=band_name, item_title=item_title, folder_suffix=folder_suffix
     )
 

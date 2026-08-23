@@ -18,7 +18,7 @@ def mark_purchase_downloaded(
         # We assume that if you use an "ignore" file once, you'll keep using it
         # forever (e.g. Docker). If you don't, you'll get a warning for the
         # missing ID file on the purchases downloaded in the current session.
-        ctx.ignore_file_writer.record(purchase)
+        ctx.ignore_file_writer.record(purchase.item_id, purchase.band_name, purchase.item_title)
         return
     try:
         ctx.local_media.write_bandcamp_id(purchase, local_path)
