@@ -1,9 +1,28 @@
+"""LocalMedia: a thin, stateful session over one sync run's local media
+directory. The substantive logic (path computation, directory-walk
+indexing, the locally-downloaded check, writing the id marker file) lives
+in domain/local_media_entry/ as plain functions - this class exists only
+to hold the live, mutable working index across the run (is_locally_downloaded
+lazily discovers and caches new entries as purchases are processed
+concurrently; see local_media_entry/checks.py for why that stays a plain
+mutable dict/set rather than an immutable snapshot rebuilt on every call).
+"""
+
 from pathlib import Path
-from tempfile import NamedTemporaryFile
-from unicodedata import normalize
 
 from bandcampsync.domain.bandcamp_item import BandcampItem
 from bandcampsync.domain.ignore_entry import IgnoreFileWriter, IgnoreRules, is_ignored
+from bandcampsync.domain.local_media_entry import (
+    ITEM_INDEX_FILENAME as _ITEM_INDEX_FILENAME,
+)
+from bandcampsync.domain.local_media_entry import (
+    clean_format,
+    index_local_media,
+    is_locally_downloaded,
+    path_for_file,
+    path_for_purchase,
+    write_bandcamp_id,
+)
 from bandcampsync.domain.logging_setup import get_logger
 
 log = get_logger("media")
@@ -20,7 +39,7 @@ class LocalMedia:
     /media_dir/Artist Name/Album Name/track2.flac
     """
 
-    ITEM_INDEX_FILENAME = "bandcamp_item_id.txt"
+    ITEM_INDEX_FILENAME = _ITEM_INDEX_FILENAME
 
     def __init__(
         self,
@@ -32,131 +51,35 @@ class LocalMedia:
         index_on_init: bool = True,
     ) -> None:
         self.media_dir = media_dir
-        self.ignore_rules = ignore_rules
-        self.ignore_file_writer = ignore_file_writer
         self.media: dict[int, Path] = {}
         self.item_names: set[tuple[str, str]] = set()
-        self.sync_ignore_file = sync_ignore_file
         log.info(f"Local media directory: {self.media_dir}")
 
-        # If the "ignores" file is empty, we need to traverse the filesystem anyway
-        if index_on_init and (not skip_item_index or len(self.ignore_rules.ids) < 1):
-            self.index()
+        def on_item_discovered(item_id: int, band_name: str, item_title: str) -> None:
+            if not sync_ignore_file:
+                return
+            item = BandcampItem(item_id=item_id, band_name=band_name, item_title=item_title)
+            if not is_ignored(ignore_rules, item):
+                ignore_file_writer.record(item)
 
-    @staticmethod
-    def _clean_path(path_str: str) -> str:
-        path_str = str(path_str)
-        disallowed_punctuation = "\"#%'*/?\\`:"
-        normalized_path = normalize("NFKD", path_str)
-        outstr = ""
-        for c in normalized_path:
-            if c not in disallowed_punctuation:
-                outstr += c
-        return outstr
+        # If the "ignores" file is empty, we need to traverse the filesystem anyway
+        if index_on_init and (not skip_item_index or len(ignore_rules.ids) < 1):
+            snapshot = index_local_media(media_dir, on_item_discovered=on_item_discovered)
+            self.media = dict(snapshot.by_item_id)
+            self.item_names = set(snapshot.item_names)
 
     @staticmethod
     def clean_format(format_str: str) -> str:
-        if "-" not in format_str:
-            return format_str
-        format_parts = format_str.split("-")
-        format_prefix = format_parts[0]
-        return format_prefix if format_prefix else format_str
-
-    def index(self) -> bool:
-        for child1 in self.media_dir.iterdir():
-            if child1.is_dir():
-                for child2 in child1.iterdir():
-                    if child2.is_dir():
-                        for child3 in child2.iterdir():
-                            if child3.name == self.ITEM_INDEX_FILENAME:
-                                self.item_names.add((child2.parent.name, child2.name))
-                                try:
-                                    item_id = self.read_item_id(child3)
-                                except ValueError as e:
-                                    log.warning(f"Skipping invalid item index file {child3}: {e}")
-                                    continue
-                                if self.sync_ignore_file:
-                                    item = BandcampItem(
-                                        item_id=item_id,
-                                        band_name=child2.parent.name,
-                                        item_title=child2.name,
-                                    )
-                                    if not is_ignored(self.ignore_rules, item):
-                                        self.ignore_file_writer.record(item)
-                                self.media[item_id] = child2
-                                log.info(f"Detected locally downloaded media: {item_id} = {child2}")
-        return True
-
-    @staticmethod
-    def read_item_id(filepath: Path) -> int:
-        with filepath.open() as f:
-            item_id = f.read().strip()
-        try:
-            return int(item_id)
-        except Exception as e:
-            raise ValueError(
-                f'Failed to cast item ID from {filepath} "{item_id}" as an int: {e}'
-            ) from e
+        return clean_format(format_str)
 
     def is_locally_downloaded(self, item: BandcampItem, local_path: Path) -> bool:
-        if item.item_id in self.media:
-            return True
-        id_file = local_path / self.ITEM_INDEX_FILENAME
-        if id_file.is_file():
-            self.item_names.add((local_path.parent.name, local_path.name))
-            try:
-                item_id = self.read_item_id(id_file)
-            except ValueError as e:
-                log.warning(f"Skipping invalid item index file {id_file}: {e}")
-            else:
-                self.media[item_id] = local_path
-                if item_id == item.item_id:
-                    log.info(f"Detected locally downloaded media: {item_id} = {local_path}")
-                    return True
-        item_name = (local_path.parent.name, local_path.name)
-        if item_name in self.item_names:
-            log.info(
-                f'Detected album at "{local_path}" but with an item ID mismatch '
-                f"({self.ITEM_INDEX_FILENAME} file does not contain {item.item_id}), "
-                f"you may want to check this item is correctly downloaded"
-            )
-            return True
-        return False
+        return is_locally_downloaded(self.media, self.item_names, item, local_path)
 
     def get_path_for_purchase(self, item: BandcampItem) -> Path:
-        return (
-            self.media_dir
-            / self._clean_path(item.band_name)
-            / self._clean_path(f"{item.item_title}{item.folder_suffix}")
-        )
+        return path_for_purchase(self.media_dir, item)
 
     def get_path_for_file(self, local_path: Path, file_name: str) -> Path:
-        return local_path / self._clean_path(file_name)
+        return path_for_file(local_path, file_name)
 
     def write_bandcamp_id(self, item: BandcampItem, dirpath: Path) -> bool:
-        try:
-            item_id = int(item.item_id)
-        except Exception as e:
-            raise ValueError(
-                f'Failed to cast item ID for "{dirpath}" "{item.item_id}" as an int: {e}'
-            ) from e
-
-        outfile = dirpath / self.ITEM_INDEX_FILENAME
-        log.info(f"Writing bandcamp item id:{item_id} to: {outfile}")
-
-        tmp_outfile: Path | None = None
-        try:
-            with NamedTemporaryFile(
-                mode="wt",
-                delete=False,
-                dir=dirpath,
-                encoding="utf-8",
-            ) as f:
-                tmp_outfile = Path(f.name)
-                f.write(f"{item_id}\n")
-            tmp_outfile.replace(outfile)
-        except Exception:
-            if tmp_outfile and tmp_outfile.exists():
-                tmp_outfile.unlink()
-            raise
-        return True
+        return write_bandcamp_id(item, dirpath)

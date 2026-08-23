@@ -232,6 +232,15 @@ Turned out low-risk: `domain/collection/download_purchase/*` only ever imported 
 
 **Tests**: `tests/domain/test_media.py` splits like Phase 4's — pure index-query tests need no filesystem; directory-walk and file-write tests keep using `tmp_path` as today.
 
+**Resolved differently than sketched above, for a concrete reason**: `sync_all_items.py` runs purchases concurrently via a thread pool, and `is_locally_downloaded`'s lazy-discovery cache (`self.media`/`self.item_names`) is shared and mutated across that whole run. An immutable `MediaIndex` returned fresh on every call (the `tuple[bool, MediaIndex]` idea above) would mean each concurrent call computes its own delta from a possibly-stale base and the caller has nowhere shared to reconcile them - a real lost-update risk, not just a style question. So:
+
+- `MediaIndex` (pydantic, frozen) is used only as the *snapshot* type returned by the one-shot `index_local_media()` walk - not as `LocalMedia`'s live state.
+- `checks.py::is_locally_downloaded(media: dict[int, Path], item_names: set[tuple[str, str]], item, local_path) -> bool` takes plain mutable containers and mutates them in place on discovery. This is the same GIL-atomicity safety the original code already relied on (simple dict/set mutation from multiple threads doesn't corrupt state), just made explicit at the call site instead of hidden inside a class method.
+- `LocalMedia` (kept, in `domain/media.py`) is now a thin shell: holds `self.media`/`self.item_names` (seeded from one `index_local_media()` snapshot) and delegates every method to the extracted free functions. Its public method signatures are **unchanged**, so none of the 5 `ctx.local_media.<method>(...)` call sites in `download_purchase/*` needed to change at all.
+- The ignore-file layering smell flagged in Phase 4 *is* fixed here: `index_local_media(media_dir, on_item_discovered=callback)` takes an optional callback invoked per discovered item, rather than importing `ignore_entry` itself. `LocalMedia.__init__` supplies a closure that does the `is_ignored`/`ignore_file_writer.record` sync - so `local_media_entry/` has zero dependency on `ignore_entry`, and the composition of the two resources happens where `LocalMedia` is constructed, not inside the indexing walk.
+
+**Status: done** (committed).
+
 ---
 
 ## Dependency change
@@ -266,3 +275,11 @@ Pure refactor of internal domain/service/interface code, no user-facing behavior
 ## Deferred follow-ups (noted, not scheduled)
 
 - **`record_error: Callable[[str], None]` threaded through domain functions** (`download_purchase.py`, `skip_rules.py`, `local_bookkeeping.py`, `download_attempt.py`, `place_single_track.py`, `place_zip_archive.py`, `file_placement.py`): each layer should probably have its own exception classes instead, with the service layer deciding whether to catch domain exceptions or let them bubble up to interface, rather than every domain function taking a callback to accumulate error strings. Explicitly deferred - not urgent, and any work here must keep behavior identical to the original bandcampsync (same error messages, same skip-vs-fail decisions), just with better structure.
+
+---
+
+## Discussed and resolved: where does the Bandcamp session contract live?
+
+Raised mid-session: should `BandcampSession`/`BandcampCollectionSession`/`BandcampFullSession` (domain-declared Protocols, satisfied structurally by `interface.bandcamp.Bandcamp`) actually live in domain, or should `interface/bandcamp/` declare its own contract instead (with domain importing the type for annotations)?
+
+**Resolved: keep as-is.** Domain declaring the port is the standard hexagonal/DIP pattern already in the codebase before this session (`BandcampSession` predates Phase 1) - domain has zero dependency on interface, not even for types.

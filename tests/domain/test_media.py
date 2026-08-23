@@ -1,18 +1,21 @@
+from pathlib import Path
 from unittest.mock import Mock, patch
 
-import pytest
-
+from bandcampsync.domain.ignore_entry import IgnoreRules
 from bandcampsync.domain.media import LocalMedia
 
 
-def _create_local_media(tmp_path, skip_item_index=False, index_on_init=True):
-    ignore_ids = {1} if skip_item_index else set()
+def _create_local_media(
+    tmp_path, skip_item_index=False, index_on_init=True, sync_ignore_file=False, ignore_rules=None
+):
+    if ignore_rules is None:
+        ignore_rules = Mock(ids={1} if skip_item_index else set())
     return LocalMedia(
         media_dir=tmp_path,
-        ignore_rules=Mock(ids=ignore_ids),
+        ignore_rules=ignore_rules,
         ignore_file_writer=Mock(),
         skip_item_index=skip_item_index,
-        sync_ignore_file=False,
+        sync_ignore_file=sync_ignore_file,
         index_on_init=index_on_init,
     )
 
@@ -81,38 +84,55 @@ def test_lazy_local_download_check_detects_name_mismatch(tmp_path):
     assert local_media.media == {456: item_dir}
 
 
-def test_write_bandcamp_id_skips_empty_item_id(tmp_path):
+def test_sync_ignore_file_records_newly_discovered_items_not_already_ignored(tmp_path):
     item_dir = tmp_path / "Band" / "Album"
     item_dir.mkdir(parents=True)
-    local_media = _create_local_media(tmp_path, skip_item_index=True)
+    (item_dir / LocalMedia.ITEM_INDEX_FILENAME).write_text("123\n")
+    ignore_file_writer = Mock()
 
-    with (
-        patch("bandcampsync.domain.media.NamedTemporaryFile") as mock_tempfile,
-        pytest.raises(ValueError),
-    ):
-        local_media.write_bandcamp_id(Mock(item_id=""), item_dir)
+    local_media = LocalMedia(
+        media_dir=tmp_path,
+        ignore_rules=IgnoreRules(),
+        ignore_file_writer=ignore_file_writer,
+        skip_item_index=False,
+        sync_ignore_file=True,
+    )
 
-    assert not (item_dir / LocalMedia.ITEM_INDEX_FILENAME).exists()
-    mock_tempfile.assert_not_called()
+    assert local_media.media == {123: item_dir}
+    ignore_file_writer.record.assert_called_once()
+    recorded_item = ignore_file_writer.record.call_args[0][0]
+    assert recorded_item.item_id == 123
+    assert recorded_item.band_name == "Band"
+    assert recorded_item.item_title == "Album"
 
 
-def test_write_bandcamp_id_preserves_existing_file_on_write_failure(tmp_path):
+def test_sync_ignore_file_skips_items_already_ignored(tmp_path):
     item_dir = tmp_path / "Band" / "Album"
     item_dir.mkdir(parents=True)
-    outfile = item_dir / LocalMedia.ITEM_INDEX_FILENAME
-    outfile.write_text("123\n")
-    local_media = _create_local_media(tmp_path, skip_item_index=True)
+    (item_dir / LocalMedia.ITEM_INDEX_FILENAME).write_text("123\n")
+    ignore_file_writer = Mock()
 
-    mock_tempfile = Mock()
-    mock_tempfile.__enter__ = Mock(return_value=Mock(name="/tmp/bad-temp"))
-    mock_tempfile.__exit__ = Mock(return_value=False)
-    mock_tempfile.__enter__.return_value.name = str(item_dir / "tmp-id-file")
-    mock_tempfile.__enter__.return_value.write.side_effect = OSError("disk full")
+    LocalMedia(
+        media_dir=tmp_path,
+        ignore_rules=IgnoreRules(ids=frozenset({123})),
+        ignore_file_writer=ignore_file_writer,
+        skip_item_index=False,
+        sync_ignore_file=True,
+    )
 
-    with (
-        patch("bandcampsync.domain.media.NamedTemporaryFile", return_value=mock_tempfile),
-        pytest.raises(OSError),
-    ):
-        local_media.write_bandcamp_id(Mock(item_id=456), item_dir)
+    ignore_file_writer.record.assert_not_called()
 
-    assert outfile.read_text() == "123\n"
+
+def test_sync_ignore_file_disabled_never_records():
+    with_writer = Mock()
+
+    LocalMedia(
+        media_dir=Path("/nonexistent-should-not-be-walked"),
+        ignore_rules=IgnoreRules(),
+        ignore_file_writer=with_writer,
+        skip_item_index=True,
+        sync_ignore_file=False,
+        index_on_init=False,
+    )
+
+    with_writer.record.assert_not_called()
