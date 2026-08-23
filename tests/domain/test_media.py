@@ -9,7 +9,8 @@ def _create_local_media(tmp_path, skip_item_index=False, index_on_init=True):
     ignore_ids = {1} if skip_item_index else set()
     return LocalMedia(
         media_dir=tmp_path,
-        ignores=Mock(ids=ignore_ids),
+        ignore_rules=Mock(ids=ignore_ids),
+        ignore_file_writer=Mock(),
         skip_item_index=skip_item_index,
         sync_ignore_file=False,
         index_on_init=index_on_init,

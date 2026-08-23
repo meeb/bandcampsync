@@ -6,6 +6,7 @@ from bandcampsync.domain.collection.download_purchase.context import (
     PurchaseDownloadContext,
     PurchaseDownloadResult,
 )
+from bandcampsync.domain.ignore_entry import is_ignored
 
 log = logging.getLogger("sync")
 
@@ -23,7 +24,7 @@ def find_skip_reason(
         )
         return PurchaseDownloadResult(downloaded=False, show_id_file_warning=False)
 
-    if ctx.ignores.is_ignored(purchase):
+    if is_ignored(ctx.ignore_rules, purchase):
         show_id_file_warning = ctx.local_media.is_locally_downloaded(purchase, local_path)
         return PurchaseDownloadResult(downloaded=False, show_id_file_warning=show_id_file_warning)
 

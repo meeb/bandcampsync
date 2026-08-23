@@ -4,7 +4,7 @@ import json
 from datetime import date
 
 from bandcampsync.domain.collection.checkpoint import state_file_path
-from bandcampsync.domain.ignores import Ignores
+from bandcampsync.domain.ignore_entry import IgnoreFileLayout, IgnoreFileWriter, IgnoreRules
 from bandcampsync.domain.options import BandcampSyncOptions
 from bandcampsync.service.prepare_local_media import prepare_local_media
 
@@ -23,13 +23,17 @@ def _options(tmp_path, **overrides):
     return BandcampSyncOptions(**defaults)
 
 
-def _ignores():
-    return Ignores(ign_file_path=None, ign_patterns="")
+def _ignore_rules():
+    return IgnoreRules()
+
+
+def _ignore_file_writer():
+    return IgnoreFileWriter(ign_file_path=None, layout=IgnoreFileLayout())
 
 
 def test_no_checkpoint_indexes_local_media(tmp_path):
     local_media, checkpoint_token, use_collection_checkpoint = prepare_local_media(
-        _options(tmp_path), _ignores()
+        _options(tmp_path), _ignore_rules(), _ignore_file_writer()
     )
 
     assert checkpoint_token is None
@@ -44,7 +48,7 @@ def test_checkpoint_present_skips_initial_local_media_index(tmp_path):
     (item_dir / "bandcamp_item_id.txt").write_text("123\n")
 
     local_media, checkpoint_token, use_collection_checkpoint = prepare_local_media(
-        _options(tmp_path), _ignores()
+        _options(tmp_path), _ignore_rules(), _ignore_file_writer()
     )
 
     assert checkpoint_token == "checkpoint-token"
@@ -57,7 +61,7 @@ def test_until_date_ignores_checkpoint_even_if_present(tmp_path):
     state_file_path(tmp_path).write_text(json.dumps({"last_seen_token": "checkpoint-token"}))
 
     _, checkpoint_token, use_collection_checkpoint = prepare_local_media(
-        _options(tmp_path, until_date=date(2026, 1, 1)), _ignores()
+        _options(tmp_path, until_date=date(2026, 1, 1)), _ignore_rules(), _ignore_file_writer()
     )
 
     assert checkpoint_token is None

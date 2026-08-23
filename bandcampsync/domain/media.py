@@ -3,7 +3,7 @@ from tempfile import NamedTemporaryFile
 from unicodedata import normalize
 
 from bandcampsync.domain.bandcamp_item import BandcampItem
-from bandcampsync.domain.ignores import Ignores
+from bandcampsync.domain.ignore_entry import IgnoreFileWriter, IgnoreRules, is_ignored
 from bandcampsync.domain.logging_setup import get_logger
 
 log = get_logger("media")
@@ -25,20 +25,22 @@ class LocalMedia:
     def __init__(
         self,
         media_dir: Path,
-        ignores: Ignores,
+        ignore_rules: IgnoreRules,
+        ignore_file_writer: IgnoreFileWriter,
         skip_item_index: bool,
         sync_ignore_file: bool,
         index_on_init: bool = True,
     ) -> None:
         self.media_dir = media_dir
-        self.ignores = ignores
+        self.ignore_rules = ignore_rules
+        self.ignore_file_writer = ignore_file_writer
         self.media: dict[int, Path] = {}
         self.item_names: set[tuple[str, str]] = set()
         self.sync_ignore_file = sync_ignore_file
         log.info(f"Local media directory: {self.media_dir}")
 
         # If the "ignores" file is empty, we need to traverse the filesystem anyway
-        if index_on_init and (not skip_item_index or len(self.ignores.ids) < 1):
+        if index_on_init and (not skip_item_index or len(self.ignore_rules.ids) < 1):
             self.index()
 
     @staticmethod
@@ -79,8 +81,8 @@ class LocalMedia:
                                         band_name=child2.parent.name,
                                         item_title=child2.name,
                                     )
-                                    if not self.ignores.is_ignored(item):
-                                        self.ignores.add(item)
+                                    if not is_ignored(self.ignore_rules, item):
+                                        self.ignore_file_writer.record(item)
                                 self.media[item_id] = child2
                                 log.info(f"Detected locally downloaded media: {item_id} = {child2}")
         return True

@@ -15,7 +15,7 @@ from bandcampsync.domain.collection import (
     SyncOutcome,
     select_items_to_sync,
 )
-from bandcampsync.domain.ignores import Ignores
+from bandcampsync.domain.ignore_entry import IgnoreFileWriter, load_ignore_rules
 from bandcampsync.domain.logging_setup import get_logger
 from bandcampsync.domain.options import BandcampSyncOptions
 from bandcampsync.interface.bandcamp import Bandcamp
@@ -47,12 +47,17 @@ def sync_collection_with(
         bandcamp_factory: Builds the authenticated Bandcamp session from
             options.cookies. Swap in a fake to avoid hitting bandcamp.com.
     """
-    ignores = Ignores(ign_file_path=options.ign_file_path, ign_patterns=options.ign_patterns)
+    ignore_rules, ignore_file_layout = load_ignore_rules(
+        options.ign_file_path, options.ign_patterns
+    )
+    ignore_file_writer = IgnoreFileWriter(options.ign_file_path, ignore_file_layout)
     dry_run = bool(options.dry_run)
     concurrency = max(1, options.concurrency)
     date_parser = PurchaseDateParser()
 
-    local_media, checkpoint_token, use_collection_checkpoint = prepare_local_media(options, ignores)
+    local_media, checkpoint_token, use_collection_checkpoint = prepare_local_media(
+        options, ignore_rules, ignore_file_writer
+    )
 
     bandcamp = authenticate_and_load_collection(
         bandcamp_factory, options, date_parser, checkpoint_token
@@ -64,7 +69,8 @@ def sync_collection_with(
     ctx = PurchaseDownloadContext(
         bandcamp=bandcamp,
         local_media=local_media,
-        ignores=ignores,
+        ignore_rules=ignore_rules,
+        ignore_file_writer=ignore_file_writer,
         media_format=options.media_format,
         temp_dir_root=options.temp_dir_root,
         max_retries=max(1, options.max_retries),

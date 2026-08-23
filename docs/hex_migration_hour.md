@@ -207,6 +207,12 @@ Turned out low-risk: `domain/collection/download_purchase/*` only ever imported 
 
 **Open point to resolve during implementation**: `PurchaseDownloadContext` is currently a frozen dataclass; `IgnoreFileLayout` needs to mutate across many `record_ignored_item` calls within one sync run. Either carry it in a small mutable box passed alongside the frozen `ctx`, or reconsider freezing just that one field. Pick whichever reads cleanest once the surrounding code is in front of you.
 
+**Resolved**: added `IgnoreFileWriter` (plain mutable `@dataclass`, in `actions.py` alongside the pure `record_ignored_item()` it wraps) - holds `ign_file_path` and the current `layout`, and its one method `record(item)` calls the pure action function and reassigns its own `.layout`. `PurchaseDownloadContext.ignore_file_writer: IgnoreFileWriter` is a frozen field pointing at a mutable object - freezing only stops the field itself from being reassigned, not the object it points to, so this works within the existing frozen-dataclass without loosening it. `record_ignored_item()` itself stays pure/directly testable (explicit `layout` in, updated `layout` out, no hidden state).
+
+`domain/media.py`'s `LocalMedia` layering smell (reaching into ignore-file write access during its own directory walk) - not resolved here, left exactly as it was (now calling the renamed `ignore_rules`/`ignore_file_writer` params) since Phase 5 is where `LocalMedia` itself gets restructured.
+
+**Status: done** (committed).
+
 **Tests**: delete `tests/domain/test_ignores.py`, replace with `tests/domain/ignore_entry/test_checks.py` (pure, no filesystem — id match / pattern match / neither), `tests/domain/ignore_entry/test_index.py` and `test_actions.py` (the parsing/rewriting tests, same coverage as today, adapted signatures). Update `tests/domain/test_media.py`, `tests/service/test_sync_collection.py`, `tests/domain/collection/download_purchase/test_skip_rules.py`, `test_local_bookkeeping.py` for the new `ctx` shape.
 
 ---

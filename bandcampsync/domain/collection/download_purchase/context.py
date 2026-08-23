@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from bandcampsync.domain.bandcamp import BandcampSession
-from bandcampsync.domain.ignores import Ignores
+from bandcampsync.domain.ignore_entry import IgnoreFileWriter, IgnoreRules
 from bandcampsync.domain.media import LocalMedia
 
 
@@ -12,7 +12,11 @@ class PurchaseDownloadContext:
 
     bandcamp: BandcampSession
     local_media: LocalMedia
-    ignores: Ignores
+    ignore_rules: IgnoreRules
+    # Mutable: accumulates newly-downloaded items across the run. The ctx
+    # itself is frozen, but this field's own state is fine to mutate - only
+    # reassigning the field itself is disallowed.
+    ignore_file_writer: IgnoreFileWriter
     media_format: str
     temp_dir_root: Path | None
     max_retries: int
