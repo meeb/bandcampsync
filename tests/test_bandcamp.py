@@ -86,8 +86,10 @@ def test_load_purchases_can_stop_at_physical_only_item(
     bandcamp._request = Mock(return_value=physical_payload)
 
     bandcamp.load_purchases(
-        stop_when=lambda item: item.band_name == physical_item["band_name"]
-        and item.item_title == physical_item["item_title"]
+        stop_when=lambda item: (
+            item.band_name == physical_item["band_name"]
+            and item.item_title == physical_item["item_title"]
+        )
     )
 
     assert [item.item_id for item in bandcamp.collection_items] == [

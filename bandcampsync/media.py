@@ -37,11 +37,12 @@ class LocalMedia:
         self.sync_ignore_file = sync_ignore_file
         log.info(f"Local media directory: {self.media_dir}")
 
-        # If the ignores file is empty, we need to traverse the filesystem anyway
+        # If the "ignores" file is empty, we need to traverse the filesystem anyway
         if index_on_init and (not skip_item_index or len(self.ignores.ids) < 1):
             self.index()
 
-    def _clean_path(self, path_str):
+    @staticmethod
+    def _clean_path(path_str):
         path_str = str(path_str)
         disallowed_punctuation = "\"#%'*/?\\`:"
         normalized_path = normalize("NFKD", path_str)
@@ -51,7 +52,8 @@ class LocalMedia:
                 outstr += c
         return outstr
 
-    def clean_format(self, format_str):
+    @staticmethod
+    def clean_format(format_str):
         if "-" not in format_str:
             return format_str
         format_parts = format_str.split("-")
@@ -89,7 +91,8 @@ class LocalMedia:
                                 )
         return True
 
-    def read_item_id(self, filepath):
+    @staticmethod
+    def read_item_id(filepath):
         with open(filepath, "rt") as f:
             item_id = f.read().strip()
         try:

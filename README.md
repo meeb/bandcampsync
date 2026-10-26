@@ -287,7 +287,7 @@ By default, BandcampSync will download your music in the `flac` format. You can 
 another format with the `--format` argument. Common Bandcamp download formats are:
 
 | Name            | Description                                                     |
-| --------------- | --------------------------------------------------------------- |
+|-----------------|-----------------------------------------------------------------|
 | `mp3-v0`        | Variable bitrate MP3. Small file sizes. OK quality.             |
 | `mp3-320`       | High quality MP3. Medium file sizes. Good quality.              |
 | `flac`          | Lossless audio. Large file sizes. Original Quality.             |

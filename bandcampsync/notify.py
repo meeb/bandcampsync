@@ -58,10 +58,14 @@ class NotifyURL:
         for key, value in self.headers.items():
             if key not in headers:
                 headers[key] = value
+        response = None
         if self.method == "GET":
             response = requests.get(self.url, headers=headers)
         elif self.method == "POST":
             response = requests.post(self.url, headers=headers, data=self.body)
+        if not response:
+            log.error(f"Failed \"{self.method}\" request to: {self.url}")
+            return False
         # check response status code is between 200 and 299
         if 200 <= response.status_code < 300:
             # print(response.text)

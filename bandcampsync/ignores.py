@@ -23,7 +23,7 @@ class Ignores:
         if self.band_patterns:
             log.info(f"Using {len(self.band_patterns)} ignore patterns")
 
-        # The original lines of the ignores file. Used to rewrite it whenever it's changed.
+        # The original lines of the "ignores" file. Used to rewrite it whenever it's changed.
         self.ign_lines = []
         # The line number at which to insert the next downloaded item id
         self.ign_insert_index = -1
@@ -36,14 +36,13 @@ class Ignores:
             return
 
         # If a file path is specified, but there is no such file (e.g. first
-        # run on Docker) we create it. We can't do it in the Dockerfile
+        # run on Docker), we create it. We can't do it in the Dockerfile
         # because it must be created in the mounted volume.
         if not os.path.exists(self.ign_file_path):
             log.warning(
                 f"Ignore file {self.ign_file_path} not found. Creating a blank one"
             )
-            with open(self.ign_file_path, "wt") as f:
-                shutil.copyfile(TEMPLATE_IGNORES_FILE, self.ign_file_path)
+            shutil.copyfile(TEMPLATE_IGNORES_FILE, self.ign_file_path)
 
         with open(self.ign_file_path, "rt") as f:
             try:
@@ -60,7 +59,7 @@ class Ignores:
                 break
 
         # If it's missing, add one at the end.
-        # Note that the blank ignores file does not contain this section, so that
+        # Note that the blank "ignores" file does not contain this section, so that
         # this code is the only source of truth for what it looks like.
         if self.ign_insert_index == -1:
             self.ign_lines.append("\n")
@@ -73,7 +72,7 @@ class Ignores:
             self.ign_insert_index = len(self.ign_lines)
 
         # We keep the original lines in self.ign_lines as base to add content,
-        # but we process the parsed content into the lines variable.
+        # but we process the parsed content into the "lines" variable.
         lines = [
             line.split("#")[0].strip() for line in self.ign_lines
         ]  # Strip comments
@@ -87,18 +86,18 @@ class Ignores:
                 )
 
     def add(self, item):
-        """Adds a new item to the ignores file, in the auto-managed section"""
+        """Adds a new item to the "ignores" file in the auto-managed section"""
 
         if not self.ign_file_path:
             return
 
         # We recreate the content of the file from the initial read.
-        # Note that any manual change made to the ignores file while the process is running
-        # will be lost, because we only read the content at startup time.
+        # Note that any manual change made to the "ignores" file while the process is running
+        # will be lost because we only read the content at startup time.
         self.ign_lines = (
             self.ign_lines[: self.ign_insert_index]
             +
-            # The human readable comment is ignored by the script,
+            # The human-readable comment is ignored by the script
             # but can be useful to identify something that needs a redownload
             [f"{item.item_id}  # {item.band_name} / {item.item_title}\n"]
             + self.ign_lines[self.ign_insert_index :]
@@ -127,7 +126,7 @@ class Ignores:
             )
             return True
 
-        # Check if any ignore pattern matches the band name
+        # Check if any "ignore" pattern matches the band name
         for pattern in self.band_patterns:
             if pattern in item.band_name.lower():
                 log.warning(
