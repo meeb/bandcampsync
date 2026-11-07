@@ -166,6 +166,12 @@ have been downloaded already, same as the `--skip-item-index` CLI argument.
 `SYNC_IGNORE_FILE` can be set to true to add already downloaded items found in
 the filesystem to the ignore file, same as the `--sync-ignore-file` CLI argument.
 
+`IMPERSONATE` can be set to the browser profile used for HTTP requests (any
+[curl_cffi impersonation target](https://curl-cffi.readthedocs.io/en/latest/impersonate/targets.html),
+e.g. `chrome136`, `safari`, `firefox`), defaults to `chrome`. Try changing it if
+requests start failing with a "Client Challenge" error. Same as the
+`--impersonate` CLI argument.
+
 
 ## Configuration
 

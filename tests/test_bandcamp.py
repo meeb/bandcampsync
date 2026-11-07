@@ -136,3 +136,11 @@ def test_normal_page_is_not_client_challenge():
         '<html><head><title>Bandcamp</title></head><body><div id="HomepageApp"></div></body></html>'
     )
     assert not Bandcamp._is_client_challenge("")
+
+
+def test_default_impersonation_profile():
+    assert Bandcamp("identity=test").impersonate == "chrome"
+
+
+def test_custom_impersonation_profile():
+    assert Bandcamp("identity=test", impersonate="safari").impersonate == "safari"

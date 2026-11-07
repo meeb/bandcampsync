@@ -66,7 +66,9 @@ class Syncer:
             index_on_init=index_local_media,
         )
 
-        self.bandcamp = Bandcamp(cookies=options.cookies)
+        self.bandcamp = Bandcamp(
+            cookies=options.cookies, impersonate=options.impersonate
+        )
         self.bandcamp.verify_authentication()
         self.bandcamp.load_purchases(stop_when=self._should_stop_loading_purchase)
 

@@ -33,7 +33,9 @@ class Bandcamp:
         "collection_items": "/api/fancollection/1/collection_items",
     }
 
-    def __init__(self, cookies=""):
+    DEFAULT_IMPERSONATE = "chrome"
+
+    def __init__(self, cookies="", impersonate=None):
         self.is_authenticated = False
         self.user_id = 0
         self.user_verified = False
@@ -53,7 +55,10 @@ class Bandcamp:
         identity_snip = identity.value[:20]
         log.info(f"Located Bandcamp identity in cookies: {identity_snip}...")
         # Create a "requests" session and map our SimpleCookie to it
-        self.session = requests.Session(impersonate="chrome")
+        self.impersonate = impersonate or self.DEFAULT_IMPERSONATE
+        if self.impersonate != self.DEFAULT_IMPERSONATE:
+            log.info(f"Using HTTP client impersonation profile: {self.impersonate}")
+        self.session = requests.Session(impersonate=self.impersonate)
         for cookie_name, morsel in self.cookies.items():
             self.session.cookies.set(cookie_name, morsel.value)
 
@@ -132,8 +137,9 @@ class Bandcamp:
                 '"Client Challenge" page instead of the expected content. This is '
                 "not a cookie or authentication problem: bandcamp.com is requiring "
                 "a JavaScript challenge that this tool cannot complete. Try again "
-                "later, from a different network, or check the project issue "
-                "tracker for updates."
+                "later, set a different HTTP client impersonation profile with "
+                "--impersonate / IMPERSONATE (e.g. chrome136, safari, firefox), "
+                "or check the project issue tracker for updates."
             )
         if as_raw:
             return response.text
