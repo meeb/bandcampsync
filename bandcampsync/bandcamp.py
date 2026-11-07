@@ -21,6 +21,10 @@ class BandcampDownloadUnavailable(BandcampError):
     pass
 
 
+class BandcampClientChallenge(BandcampError):
+    pass
+
+
 class Bandcamp:
     BASE_PROTO = "https"
     BASE_DOMAIN = "bandcamp.com"
@@ -122,12 +126,32 @@ class Bandcamp:
                 f"Failed to make HTTP request to {mask_sig(url)}: "
                 f"unknown status code response: {response.status_code}"
             )
+        if self._is_client_challenge(response.text):
+            raise BandcampClientChallenge(
+                f"Request to {mask_sig(url)} was answered with a bot protection "
+                '"Client Challenge" page instead of the expected content. This is '
+                "not a cookie or authentication problem: bandcamp.com is requiring "
+                "a JavaScript challenge that this tool cannot complete. Try again "
+                "later, from a different network, or check the project issue "
+                "tracker for updates."
+            )
         if as_raw:
             return response.text
         elif is_json:
             return json.loads(response.text)
         else:
             return BeautifulSoup(response.text, "html.parser")
+
+    @staticmethod
+    def _is_client_challenge(body):
+        """
+        Detects the bot protection interstitial bandcamp.com may serve (with a
+        200 status) instead of the requested page.
+        """
+        if not body:
+            return False
+        head = body[:4096]
+        return "<title>Client Challenge</title>" in head or "/_fs-ch-" in head
 
     @staticmethod
     def _extract_pagedata_from_soup(soup, id_name="pagedata"):
@@ -141,8 +165,8 @@ class Bandcamp:
         encoded_pagedata = pagedata_tag.attrs.get("data-blob")
         if not encoded_pagedata:
             raise BandcampError(
-                "Failed to extract page data, check your cookies are from an ",
-                "authenticated session",
+                "Failed to extract page data, check your cookies are from an "
+                "authenticated session"
             )
         pagedata_str = html_unescape(encoded_pagedata)
         try:

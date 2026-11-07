@@ -3,7 +3,12 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
-from bandcampsync.bandcamp import Bandcamp, BandcampDownloadUnavailable, BandcampItem
+from bandcampsync.bandcamp import (
+    Bandcamp,
+    BandcampClientChallenge,
+    BandcampDownloadUnavailable,
+    BandcampItem,
+)
 
 
 def _load_payload(name):
@@ -114,3 +119,20 @@ def test_get_download_file_url_missing_downloads_is_unavailable(bandcamp):
 
     with pytest.raises(BandcampDownloadUnavailable):
         bandcamp.get_download_file_url(item)
+
+
+def test_client_challenge_page_raises_clear_error(bandcamp):
+    challenge_html = (
+        Path(__file__).resolve().parent / "data" / "client-challenge.html"
+    ).read_text(encoding="utf-8")
+    response = Mock(status_code=200, text=challenge_html)
+    bandcamp.session.request = Mock(return_value=response)
+    with pytest.raises(BandcampClientChallenge, match="Client Challenge"):
+        bandcamp.verify_authentication()
+
+
+def test_normal_page_is_not_client_challenge():
+    assert not Bandcamp._is_client_challenge(
+        '<html><head><title>Bandcamp</title></head><body><div id="HomepageApp"></div></body></html>'
+    )
+    assert not Bandcamp._is_client_challenge("")
