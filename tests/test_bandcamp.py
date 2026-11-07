@@ -1,9 +1,16 @@
 import json
+from html import escape
 from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
-from bandcampsync.bandcamp import Bandcamp, BandcampDownloadUnavailable, BandcampItem
+
+from bandcampsync.bandcamp import (
+    Bandcamp,
+    BandcampDownloadUnavailable,
+    BandcampError,
+    BandcampItem,
+)
 
 
 def _load_payload(name):
@@ -114,3 +121,74 @@ def test_get_download_file_url_missing_downloads_is_unavailable(bandcamp):
 
     with pytest.raises(BandcampDownloadUnavailable):
         bandcamp.get_download_file_url(item)
+
+
+CHALLENGE_HTML = (
+    "<!DOCTYPE html><html><head><title>Client Challenge</title></head>"
+    "<body><script src='/_fs-ch-abc/script.js'></script></body></html>"
+)
+HOME_HTML = (
+    '<html><div id="HomepageApp" data-blob="'
+    + escape(
+        json.dumps(
+            {
+                "pageContext": {
+                    "identity": {"fanId": 1, "isFanVerified": True},
+                }
+            }
+        )
+    )
+    + '"></div></html>'
+)
+
+
+class _Response:
+    def __init__(self, text, status_code=200):
+        self.text = text
+        self.status_code = status_code
+
+
+class _FakeCookieJar:
+    def set(self, *args, **kwargs):
+        return None
+
+
+def _install_fake_session(monkeypatch, responses):
+    created = []
+
+    class FakeSession:
+        def __init__(self, impersonate=None):
+            self.impersonate = impersonate
+            self.cookies = _FakeCookieJar()
+            created.append(impersonate)
+
+        def request(self, *args, **kwargs):
+            return responses.pop(0)
+
+    monkeypatch.setattr("bandcampsync.bandcamp.requests.Session", FakeSession)
+    return created
+
+
+def test_verify_authentication_retries_after_client_challenge(monkeypatch):
+    created = _install_fake_session(
+        monkeypatch,
+        [_Response(CHALLENGE_HTML), _Response(HOME_HTML)],
+    )
+    bandcamp = Bandcamp("identity=test")
+
+    assert bandcamp.verify_authentication() is True
+    assert bandcamp.user_id == 1
+    assert bandcamp.user_verified is True
+    assert created == list(Bandcamp.BROWSER_PROFILES[:2])
+    assert bandcamp.browser_profile == Bandcamp.BROWSER_PROFILES[1]
+
+
+def test_verify_authentication_reports_client_challenge(monkeypatch):
+    _install_fake_session(
+        monkeypatch,
+        [_Response(CHALLENGE_HTML) for _ in Bandcamp.BROWSER_PROFILES],
+    )
+    bandcamp = Bandcamp("identity=test")
+
+    with pytest.raises(BandcampError, match="client challenge"):
+        bandcamp.verify_authentication()

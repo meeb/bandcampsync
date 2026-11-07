@@ -28,6 +28,15 @@ class Bandcamp:
         "index": "/",
         "collection_items": "/api/fancollection/1/collection_items",
     }
+    # curl_cffi's "chrome" alias is currently rejected by Bandcamp's Fastly
+    # client challenge, which returns a small "Client Challenge" page and no
+    # HomepageApp markup. These fingerprints still receive the real site.
+    BROWSER_PROFILES = (
+        "chrome146",
+        "chrome150",
+        "firefox155",
+        "safari260",
+    )
 
     def __init__(self, cookies=""):
         self.is_authenticated = False
@@ -49,9 +58,8 @@ class Bandcamp:
         identity_snip = identity.value[:20]
         log.info(f"Located Bandcamp identity in cookies: {identity_snip}...")
         # Create a "requests" session and map our SimpleCookie to it
-        self.session = requests.Session(impersonate="chrome")
-        for cookie_name, morsel in self.cookies.items():
-            self.session.cookies.set(cookie_name, morsel.value)
+        self.browser_profile = self.BROWSER_PROFILES[0]
+        self.session = self._open_session(self.browser_profile)
 
     def load_cookies(self, cookies_str):
         self.cookies = SimpleCookie()
@@ -99,28 +107,64 @@ class Bandcamp:
             cookies[cookie_value.key] = cookie_value.value
         return cookies
 
+    def _open_session(self, profile):
+        session = requests.Session(impersonate=profile)
+        for cookie_name, morsel in self.cookies.items():
+            session.cookies.set(cookie_name, morsel.value)
+        return session
+
+    @staticmethod
+    def _is_client_challenge(response):
+        body = response.text or ""
+        return "Client Challenge" in body and "_fs-ch-" in body
+
     def _request(
         self, method, url, data=None, json_data=None, is_json=False, as_raw=False
     ):
-        try:
-            # The debug logs do not mask the URL, which may be a security issue if you run
-            # with level=logging.DEBUG
-            log.debug(f"Making {method} request to {url}")
-            response = self.session.request(
-                method,
-                url,
-                cookies=self._plain_cookies(),
-                data=data,
-                json=json_data,
-            )
-        except Exception as e:
+        profiles = (self.browser_profile,) + tuple(
+            profile
+            for profile in self.BROWSER_PROFILES
+            if profile != self.browser_profile
+        )
+        response = None
+        for profile in profiles:
+            if profile != self.browser_profile or self.session is None:
+                log.info(f"Switching browser profile to {profile}")
+                self.browser_profile = profile
+                self.session = self._open_session(profile)
+            try:
+                # The debug logs do not mask the URL, which may be a security issue if you run
+                # with level=logging.DEBUG
+                log.debug(f"Making {method} request to {url}")
+                response = self.session.request(
+                    method,
+                    url,
+                    cookies=self._plain_cookies(),
+                    data=data,
+                    json=json_data,
+                )
+            except Exception as e:
+                raise BandcampError(
+                    f"Failed to make HTTP request to {mask_sig(url)}: {e}"
+                ) from e
+            if self._is_client_challenge(response):
+                log.warning(
+                    "Browser profile "
+                    f"{profile} received Bandcamp's client challenge"
+                )
+                response = None
+                continue
+            if response.status_code != 200:
+                raise BandcampError(
+                    f"Failed to make HTTP request to {mask_sig(url)}: "
+                    f"unknown status code response: {response.status_code}"
+                )
+            break
+        if response is None:
             raise BandcampError(
-                f"Failed to make HTTP request to {mask_sig(url)}: {e}"
-            ) from e
-        if response.status_code != 200:
-            raise BandcampError(
-                f"Failed to make HTTP request to {mask_sig(url)}: "
-                f"unknown status code response: {response.status_code}"
+                "Bandcamp returned a browser client challenge instead of the "
+                "requested page. The cookies file loaded, but the request was "
+                "blocked before account data could be read."
             )
         if as_raw:
             return response.text
