@@ -51,8 +51,7 @@ class Bandcamp:
                 "cookies.txt file is valid and you copied it from an "
                 "authenticated browser"
             )
-        identity_snip = identity.value[:20]
-        log.info(f"Located Bandcamp identity in cookies: {identity_snip}...")
+        log.info("Located Bandcamp identity in cookies")
         # Sessions are kept per browser profile, the current profile is the last one
         # that received a real response. Sync threads share all of this state.
         self.browser_profile = self.browser_profiles[0]
@@ -69,7 +68,6 @@ class Bandcamp:
         """
         impersonate = impersonate.strip() if impersonate else ""
         if impersonate:
-            self.impersonate = impersonate
             self.browser_profiles = (impersonate,)
             return
         if not BROWSER_PROFILES:
@@ -77,7 +75,6 @@ class Bandcamp:
                 "No browser profiles to use, name one with --impersonate or add "
                 "some to BROWSER_PROFILES in config.py"
             )
-        self.impersonate = None
         self.browser_profiles = tuple(BROWSER_PROFILES)
 
     def load_cookies(self, cookies_str):
@@ -554,4 +551,4 @@ class BandcampItem:
         try:
             return self._data[key]
         except KeyError as e:
-            raise KeyError(f'BandcampItem value "{key}" does not exist') from e
+            raise AttributeError(f'BandcampItem value "{key}" does not exist') from e
