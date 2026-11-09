@@ -1,13 +1,17 @@
 """Tests for fitting names to the filesystem, using real directories."""
 
 import os
+import sys
 
 import pytest
 
 from bandcampsync.names import fit_name, is_usable_name
 
-LONG_NAME = "\u28ce" * 100
-ZALGO_NAME = "Album" + "\u0338\u0322\u031b\u0345" * 60
+# Over the limit on every filesystem, however it measures names. Some count bytes such as
+# ext4, others count characters such as NTFS and the macOS default, where a name of 100
+# multi-byte characters is valid.
+LONG_NAME = "\u28ce" * 300
+ZALGO_NAME = "Album" + "\u0338\u0322\u031b\u0345" * 100
 
 
 @pytest.mark.parametrize("name", ["Normal Album", "a" * 255, "\u28ce" * 85, "..."])
@@ -38,6 +42,17 @@ def test_unusable_names_can_be_created_after_fitting(tmp_path, name):
 
     (tmp_path / fitted).mkdir()
     assert (tmp_path / fitted).is_dir()
+
+
+@pytest.mark.skipif(
+    os.name == "nt" or sys.platform == "darwin",
+    reason="These platforms limit names by characters rather than bytes",
+)
+def test_name_over_the_byte_limit_is_shortened(tmp_path):
+    name = "\u28ce" * 100
+
+    assert is_usable_name(tmp_path, name) is False
+    assert len(fit_name(tmp_path, name).encode()) <= 255
 
 
 def test_combining_marks_are_removed_before_cutting(tmp_path):

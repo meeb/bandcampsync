@@ -127,7 +127,7 @@ def test_failed_read_masks_url_in_log(caplog, attribute):
 
 def test_unzip_shortens_names_the_filesystem_cannot_use(tmp_path):
     path = tmp_path / "download.zip"
-    long_name = "\u28ce" * 100
+    long_name = "\u28ce" * 300
     with ZipFile(path, "w") as archive:
         archive.writestr(f"{long_name}.flac", "audio")
         archive.writestr("cover.jpg", "art")

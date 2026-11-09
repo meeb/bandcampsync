@@ -541,7 +541,7 @@ def test_folder_used_by_item_not_in_collection_gets_separate_folder(tmp_path):
 def test_item_with_name_too_long_for_filesystem_is_downloaded_once(tmp_path):
     (tmp_path / "Band").mkdir()
     long_item = _collection_item(1, "long")
-    long_item["item_title"] = "\u28ce" * 100
+    long_item["item_title"] = "\u28ce" * 300
     normal_item = _collection_item(2, "normal")
 
     downloaded = _run_collection_sync(
@@ -607,7 +607,8 @@ def test_album_files_matching_after_cleaning_are_numbered(tmp_path):
 
     def write_zip(url, target, **kwargs):
         with ZipFile(target, "w") as archive:
-            archive.writestr("Track?.flac", "one")
+            # A % is valid on every filesystem, but is removed from names when cleaning
+            archive.writestr("Track%.flac", "one")
             archive.writestr("Track.flac", "two")
         return "application/zip"
 

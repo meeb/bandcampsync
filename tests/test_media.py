@@ -161,11 +161,11 @@ def test_clean_path_keeps_windows_only_rules_off_other_platforms(name):
 
 def test_paths_for_unusable_names_can_be_created(tmp_path):
     local_media = _create_local_media(tmp_path, index_on_init=False)
-    item = Mock(band_name="\u28ce" * 100, item_title="\u28ce" * 100, folder_suffix="")
+    item = Mock(band_name="\u28ce" * 300, item_title="\u28ce" * 300, folder_suffix="")
 
     path = local_media.get_path_for_purchase(item)
     path.mkdir(parents=True)
-    file_path = local_media.get_path_for_file(path, "\u28ce" * 100 + ".flac")
+    file_path = local_media.get_path_for_file(path, "\u28ce" * 300 + ".flac")
     file_path.write_text("audio")
 
     assert file_path.suffix == ".flac"
@@ -174,7 +174,7 @@ def test_paths_for_unusable_names_can_be_created(tmp_path):
 
 def test_folder_suffix_keeps_long_names_separate(tmp_path):
     local_media = _create_local_media(tmp_path, index_on_init=False)
-    title = "\u28ce" * 100
+    title = "\u28ce" * 300
 
     first = local_media.get_path_for_purchase(
         Mock(band_name="Band", item_title=title, folder_suffix=" [1]")
