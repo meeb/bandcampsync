@@ -1,10 +1,12 @@
 """Tests for Syncer's sync_item functionality and retry logic."""
 
+import asyncio
 import shutil
 from pathlib import Path
 from unittest.mock import Mock, patch
 from zipfile import ZipFile
 import pytest
+from curl_cffi import CurlError, requests
 from bandcampsync.sync import Syncer
 from bandcampsync.options import BandcampSyncOptions
 from bandcampsync.bandcamp import BandcampDownloadUnavailable, BandcampError
@@ -418,3 +420,63 @@ def test_item_is_downloaded_again_after_failed_move(syncer, mock_bandcamp, tmp_p
     assert (album_dir / "track1.flac").read_text() == "one"
     assert (album_dir / "track2.flac").read_text() == "two"
     assert (album_dir / "bandcamp_item_id.txt").read_text().strip() == "1"
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        requests.exceptions.ConnectionError("connection refused"),
+        requests.exceptions.DNSError("could not resolve host"),
+        requests.exceptions.IncompleteRead("bytes missing"),
+        CurlError("other curl failure"),
+    ],
+)
+def test_network_error_is_retried(syncer, mock_bandcamp, tmp_path, error):
+    item = _download_item(mock_bandcamp)
+    errors = [error]
+
+    def fail_then_download(url, target, **kwargs):
+        if errors:
+            raise errors.pop()
+        return _write_zip(url, target)
+
+    with (
+        patch("bandcampsync.sync.download_file", side_effect=fail_then_download),
+        patch("bandcampsync.sync.time.sleep") as mock_sleep,
+    ):
+        assert syncer.sync_item(item) is True
+
+    mock_sleep.assert_called_once_with(syncer.retry_wait)
+    assert syncer.had_sync_errors is False
+    assert (tmp_path / "Artist" / "Album" / "track2.flac").read_text() == "two"
+
+
+def test_network_error_on_every_attempt_does_not_stop_sync(
+    syncer, mock_bandcamp, tmp_path
+):
+    failing = _download_item(mock_bandcamp)
+    working = _download_item(mock_bandcamp)
+    working.item_id = 2
+    working.item_title = "Second Album"
+    mock_bandcamp.purchases = [failing, working]
+    error = requests.exceptions.ConnectionError("connection refused")
+
+    def fail_first_item(url, target, **kwargs):
+        if mock_download.call_count <= syncer.max_retries:
+            raise error
+        return _write_zip(url, target)
+
+    with (
+        patch(
+            "bandcampsync.sync.download_file", side_effect=fail_first_item
+        ) as mock_download,
+        patch("bandcampsync.sync.time.sleep"),
+    ):
+        asyncio.run(syncer.sync_items())
+
+    assert mock_download.call_count == syncer.max_retries + 1
+    assert len(syncer.sync_errors) == 1
+    assert "connection refused" in syncer.sync_errors[0]
+    assert not (tmp_path / "Artist" / "Album").exists()
+    assert (tmp_path / "Artist" / "Second Album" / "track1.flac").exists()
+    assert not syncer.state_file_path.exists()

@@ -4,6 +4,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory
+from curl_cffi import CurlError
 from .options import BandcampSyncOptions
 from .logger import get_logger
 from .bandcamp import Bandcamp, BandcampError, BandcampDownloadUnavailable
@@ -430,6 +431,7 @@ class Syncer:
                     return False
                 except (
                     BandcampError,
+                    CurlError,
                     DownloadBadStatusCode,
                     DownloadInvalidContentType,
                 ) as e:
