@@ -24,7 +24,9 @@ checkpoint file at the root of your media directory:
 `/media/.bandcampsync-state.json`
 
 On the next run, purchase pagination stops as soon as this checkpoint is reached,
-so only new purchases are fetched.
+so only new purchases are fetched. The checkpoint stays behind any unreleased
+pre-orders so they are downloaded once they are released. To scan your full collection
+again, for example to find pre-orders missed by older versions, delete this file.
 
 The media directory will have the following format:
 

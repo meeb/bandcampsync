@@ -513,6 +513,10 @@ class BandcampItem:
         return self._data.get("sale_item_type")
 
     @property
+    def is_preorder(self):
+        return bool(self._data.get("is_preorder", False))
+
+    @property
     def hidden(self):
         return True if self._data.get("hidden", False) else False
 

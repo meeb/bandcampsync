@@ -55,8 +55,13 @@ class Syncer:
         self._warned_missing_purchase_date = False
 
         self.use_collection_checkpoint = not self.until_date
+        self.checkpoint_has_preorder = False
         self.collection_checkpoint_token = self._load_collection_checkpoint()
-        index_local_media = not self.collection_checkpoint_token
+        # Items newer than an unreleased preorder are checked again on every run, so
+        # they need the local media index to find any renamed directories
+        index_local_media = (
+            not self.collection_checkpoint_token or self.checkpoint_has_preorder
+        )
         if not index_local_media:
             log.info("Collection checkpoint loaded; skipping initial local media index")
         self.local_media = LocalMedia(
@@ -113,11 +118,34 @@ class Syncer:
                 f'Ignoring invalid state file "{state_file}": expected JSON object'
             )
             return None
+        self.checkpoint_has_preorder = state.get("has_unreleased_preorder") is True
         token = state.get("last_seen_token")
         if not isinstance(token, str) or not token:
             return None
         log.info(f'Loaded collection checkpoint from "{state_file}"')
         return token
+
+    @staticmethod
+    def _is_preorder(item):
+        return getattr(item, "is_preorder", False) is True
+
+    def _select_checkpoint_item(self, collection_items):
+        """
+        Returns the newest item, ordered newest first, that later runs can stop at
+        without missing anything. Unreleased preorders need checking again, so if there
+        are any this is the item just older than the oldest one, or None if there isn't
+        an older item and the whole collection needs loading again.
+        """
+        older_than_preorders = None
+        for index, item in enumerate(collection_items):
+            if self._is_preorder(item):
+                older_than_preorders = index + 1
+        if older_than_preorders is None:
+            return collection_items[0]
+        for item in collection_items[older_than_preorders:]:
+            if self._item_token(item):
+                return item
+        return None
 
     def _save_collection_checkpoint(self):
         if not self.use_collection_checkpoint:
@@ -133,15 +161,19 @@ class Syncer:
             collection_items = self.bandcamp.purchases
         if not collection_items:
             return
-        newest_item = collection_items[0]
-        newest_token = self._item_token(newest_item)
-        if not newest_token:
+        checkpoint_item = self._select_checkpoint_item(collection_items)
+        checkpoint_token = self._item_token(checkpoint_item)
+        if checkpoint_item is not None and not checkpoint_token:
             return
+        has_preorder = any(self._is_preorder(item) for item in collection_items)
+        if has_preorder:
+            log.info("Holding collection checkpoint back for unreleased preorders")
         state = {
             "version": self.STATE_VERSION,
-            "last_seen_token": newest_token,
-            "last_seen_item_id": getattr(newest_item, "item_id", None),
-            "last_seen_purchased": getattr(newest_item, "purchased", None),
+            "last_seen_token": checkpoint_token,
+            "last_seen_item_id": getattr(checkpoint_item, "item_id", None),
+            "last_seen_purchased": getattr(checkpoint_item, "purchased", None),
+            "has_unreleased_preorder": has_preorder,
             "updated_at_utc": datetime.now(timezone.utc).isoformat(),
         }
         state_file = self.state_file_path
