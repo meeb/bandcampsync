@@ -1,4 +1,4 @@
-from curl_cffi import requests
+from curl_cffi import CurlError, requests
 from .config import INTERNAL_USER_AGENT
 from .logger import get_logger
 
@@ -59,10 +59,14 @@ class NotifyURL:
             if key not in headers:
                 headers[key] = value
         response = None
-        if self.method == "GET":
-            response = requests.get(self.url, headers=headers)
-        elif self.method == "POST":
-            response = requests.post(self.url, headers=headers, data=self.body)
+        try:
+            if self.method == "GET":
+                response = requests.get(self.url, headers=headers)
+            elif self.method == "POST":
+                response = requests.post(self.url, headers=headers, data=self.body)
+        except CurlError as e:
+            log.error(f'Failed "{self.method}" request to: {self.url} ({e})')
+            return False
         if not response:
             log.error(f"Failed \"{self.method}\" request to: {self.url}")
             return False
