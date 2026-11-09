@@ -58,3 +58,41 @@ def test_successful_notify_returns_true():
     response = Mock(status_code=204)
     with patch("bandcampsync.notify.requests.get", return_value=response):
         assert NotifyURL("http://example.com/").notify() is True
+
+
+@pytest.mark.parametrize(
+    "headers,expected",
+    [
+        ("-", {}),
+        ("Authorization=abc", {"Authorization": "abc"}),
+        ("X-One=1,X-Two=2", {"X-One": "1", "X-Two": "2"}),
+        ("Authorization=dG9rZW4=", {"Authorization": "dG9rZW4="}),
+        ("X-Empty=", {"X-Empty": ""}),
+    ],
+)
+def test_headers_are_parsed(headers, expected):
+    notify = NotifyURL(f"POST http://example.com/ {headers} -")
+
+    assert notify.valid is True
+    assert notify.headers == expected
+
+
+@pytest.mark.parametrize("headers", ["Authorization", "=abc", "X-One=1,X-Two"])
+def test_malformed_headers_are_invalid(headers):
+    notify = NotifyURL(f"POST http://example.com/ {headers} -")
+
+    assert notify.valid is False
+    with patch("bandcampsync.notify.requests.post") as mock_post:
+        assert notify.notify() is False
+    mock_post.assert_not_called()
+
+
+def test_single_header_is_sent():
+    response = Mock(status_code=200)
+    notify = NotifyURL("POST http://example.com/ Authorization=abc body")
+    with patch("bandcampsync.notify.requests.post", return_value=response) as mock_post:
+        assert notify.notify() is True
+
+    _, kwargs = mock_post.call_args
+    assert kwargs["headers"]["Authorization"] == "abc"
+    assert kwargs["data"] == "body"

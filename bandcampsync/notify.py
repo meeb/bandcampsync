@@ -36,9 +36,14 @@ class NotifyURL:
             self.method = method
             self.url = parts[1]
             headers = parts[2]
-            if headers != "-" and "," in headers:
+            if headers != "-":
                 for header in headers.split(","):
-                    key, value = header.split("=")
+                    key, separator, value = header.partition("=")
+                    if not key or not separator:
+                        log.error(
+                            f"Invalid notify header (must be key=value): {header}"
+                        )
+                        return
                     self.headers[key] = value
             body = parts[3]
             if body != "-":
@@ -68,7 +73,7 @@ class NotifyURL:
             log.error(f'Failed "{self.method}" request to: {self.url} ({e})')
             return False
         if not response:
-            log.error(f"Failed \"{self.method}\" request to: {self.url}")
+            log.error(f'Failed "{self.method}" request to: {self.url}')
             return False
         # check response status code is between 200 and 299
         if 200 <= response.status_code < 300:

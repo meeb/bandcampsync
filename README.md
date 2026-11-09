@@ -285,7 +285,7 @@ is `POST`. You can use `-` for header and body values to leave them unset. Some 
 
 `GET http://some.service.local/some-uri - -`
 
-`GET http://some.service.local/some-uri header1=abc,header2 -`
+`GET http://some.service.local/some-uri header1=abc,header2=def -`
 
 `POST http://some.service.local/some-uri auth-header=abc somedata`
 
