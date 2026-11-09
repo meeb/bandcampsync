@@ -1,4 +1,5 @@
 import math
+import re
 import shutil
 import zlib
 from zipfile import BadZipFile, ZipFile
@@ -11,15 +12,7 @@ log = get_logger("download")
 
 
 def mask_sig(url):
-    if "&sig=" not in url:
-        return url
-    url_parts = url.split("&")
-    for i, url_part in enumerate(url_parts):
-        if url_part[:4] == "sig=":
-            url_parts[i] = "sig=[masked]"
-        elif url_part[:6] == "token=":
-            url_parts[i] = "token=[masked]"
-    return "&".join(url_parts)
+    return re.sub(r"([?&](?:sig|token)=)[^&]*", r"\1[masked]", url)
 
 
 class DownloadBadStatusCode(ValueError):
@@ -56,7 +49,7 @@ def _fetch_html_body(url, impersonate):
     try:
         resp = requests.get(url, stream=False, impersonate=impersonate)
     except requests.exceptions.RequestException as e:
-        log.warning(f"Failed to fetch HTML body for: {url} ({e})")
+        log.warning(f"Failed to fetch HTML body for: {mask_sig(url)} ({e})")
         return ""
     try:
         return resp.text or ""
@@ -69,13 +62,15 @@ def _read_html_body(response, impersonate):
     try:
         html_body = response.text or ""
     except requests.exceptions.RequestException as e:
-        log.warning(f"Failed to read HTML body for: {response.url} ({e})")
+        log.warning(f"Failed to read HTML body for: {mask_sig(response.url)} ({e})")
         pass
     if not html_body:
         try:
             html_body = response.content.decode("utf-8", errors="replace")
         except requests.exceptions.RequestException as e:
-            log.warning(f"Failed to decode HTML body for: {response.url} ({e})")
+            log.warning(
+                f"Failed to decode HTML body for: {mask_sig(response.url)} ({e})"
+            )
             pass
     if not html_body:
         html_body = _fetch_html_body(response.url, impersonate)

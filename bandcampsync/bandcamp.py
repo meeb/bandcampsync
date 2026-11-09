@@ -213,8 +213,8 @@ class Bandcamp:
         encoded_pagedata = pagedata_tag.attrs.get("data-blob")
         if not encoded_pagedata:
             raise BandcampError(
-                "Failed to extract page data, check your cookies are from an ",
-                "authenticated session",
+                "Failed to extract page data, check your cookies are from an "
+                "authenticated session"
             )
         pagedata_str = html_unescape(encoded_pagedata)
         try:

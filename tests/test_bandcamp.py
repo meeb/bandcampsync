@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
+from bs4 import BeautifulSoup
 
 from bandcampsync.bandcamp import (
     Bandcamp,
@@ -285,3 +286,15 @@ def test_identity_cookie_is_not_logged(caplog):
         Bandcamp("identity=secret-identity-value")
 
     assert "secret" not in caplog.text
+
+
+def test_missing_page_data_error_is_a_readable_message():
+    soup = BeautifulSoup('<div id="pagedata"></div>', "html.parser")
+
+    with pytest.raises(BandcampError) as error:
+        Bandcamp._extract_pagedata_from_soup(soup)
+
+    assert str(error.value) == (
+        "Failed to extract page data, check your cookies are from an "
+        "authenticated session"
+    )
