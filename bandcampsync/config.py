@@ -7,6 +7,6 @@ INTERNAL_USER_AGENT = f"bandcampsync/{VERSION}"
 BROWSER_PROFILES = (
     "chrome146",
     "firefox155",
-    "safari260",
+    "safari270",
 )
 BROWSER_PROFILE_WAIT = 1
