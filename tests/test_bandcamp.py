@@ -204,7 +204,7 @@ def test_impersonate_replaces_fallback_profiles(monkeypatch):
 
     with pytest.raises(BandcampError, match="client challenge"):
         bandcamp.verify_authentication()
-    assert bandcamp.impersonate == "safari260"
+    assert bandcamp.browser_profile == "safari260"
     assert created == ["safari260"]
 
 
@@ -212,7 +212,7 @@ def test_impersonate_replaces_fallback_profiles(monkeypatch):
 def test_missing_impersonate_uses_configured_profiles(impersonate):
     bandcamp = Bandcamp("identity=test", impersonate=impersonate)
 
-    assert bandcamp.impersonate is None
+    assert bandcamp.browser_profile == BROWSER_PROFILES[0]
     assert bandcamp.browser_profiles == tuple(BROWSER_PROFILES)
 
 
@@ -270,3 +270,18 @@ def test_new_profile_gets_cookies_except_challenge_state():
 
     names = {cookie.name for cookie in session.cookies.jar}
     assert names == {"identity", "client_id"}
+
+
+def test_item_missing_attribute_uses_getattr_default():
+    item = BandcampItem({})
+
+    assert getattr(item, "purchased", "default") == "default"
+    with pytest.raises(AttributeError):
+        item.purchased
+
+
+def test_identity_cookie_is_not_logged(caplog):
+    with caplog.at_level("DEBUG"):
+        Bandcamp("identity=secret-identity-value")
+
+    assert "secret" not in caplog.text

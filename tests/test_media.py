@@ -111,3 +111,25 @@ def test_write_bandcamp_id_preserves_existing_file_on_write_failure(tmp_path):
             local_media.write_bandcamp_id(Mock(item_id=456), item_dir)
 
     assert outfile.read_text() == "123\n"
+
+
+@pytest.mark.parametrize("name", ["..", ".", "", " ", " .. ", "?", "/", "../"])
+def test_clean_path_never_leaves_the_media_directory(name):
+    assert LocalMedia._clean_path(name) == "_"
+
+
+@pytest.mark.parametrize(
+    "name,expected",
+    [("...", "..."), ("Band. Name", "Band. Name"), ("..Band", "..Band"), ("a/b", "ab")],
+)
+def test_clean_path_keeps_usable_names(name, expected):
+    assert LocalMedia._clean_path(name) == expected
+
+
+def test_path_for_purchase_stays_inside_media_directory(tmp_path):
+    local_media = _create_local_media(tmp_path, index_on_init=False)
+    item = Mock(band_name="..", item_title="..", folder_suffix="")
+
+    path = local_media.get_path_for_purchase(item).resolve()
+
+    assert path == tmp_path.resolve() / "_" / "_"

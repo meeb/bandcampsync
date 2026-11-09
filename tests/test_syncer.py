@@ -432,3 +432,27 @@ def test_preorder_is_downloaded_after_release(tmp_path, preorder_has_url):
     assert state["has_unreleased_preorder"] is False
     # Nothing newer, so the run stops at the checkpoint and nothing is downloaded
     assert _run_collection_sync(tmp_path, collection(released), [1, 2, 3]) == []
+
+
+def test_sync_ignore_file_indexes_local_media_with_checkpoint(mock_bandcamp, tmp_path):
+    (tmp_path / Syncer.STATE_FILENAME).write_text(
+        json.dumps({"last_seen_token": "checkpoint-token"})
+    )
+    album = tmp_path / "Band" / "Album"
+    album.mkdir(parents=True)
+    (album / "bandcamp_item_id.txt").write_text("5\n")
+    ignore_file = tmp_path / "ignores.txt"
+    ignore_file.write_text("# Ignored items\n")
+
+    syncer = Syncer(
+        BandcampSyncOptions(
+            cookies="identity=test",
+            dir_path=tmp_path,
+            ign_file_path=ignore_file,
+            sync_ignore_file=True,
+        ),
+        auto_run=False,
+    )
+
+    assert syncer.collection_checkpoint_token == "checkpoint-token"
+    assert "5  # Band / Album" in ignore_file.read_text()

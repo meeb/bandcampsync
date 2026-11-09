@@ -2,9 +2,10 @@
 
 import asyncio
 import shutil
+from io import BytesIO
 from pathlib import Path
 from unittest.mock import Mock, patch
-from zipfile import ZipFile
+from zipfile import ZIP_STORED, ZipFile
 import pytest
 from curl_cffi import CurlError, requests
 from bandcampsync.sync import Syncer
@@ -480,3 +481,94 @@ def test_network_error_on_every_attempt_does_not_stop_sync(
     assert not (tmp_path / "Artist" / "Album").exists()
     assert (tmp_path / "Artist" / "Second Album" / "track1.flac").exists()
     assert not syncer.state_file_path.exists()
+
+
+def _write_corrupt_zip(url, target, **kwargs):
+    """A valid zip index, but a track fails its checksum when it's extracted."""
+    buffer = BytesIO()
+    with ZipFile(buffer, "w", ZIP_STORED) as archive:
+        archive.writestr("track1.flac", "one")
+    target.write(buffer.getvalue().replace(b"one", b"bad", 1))
+    target.flush()
+    return "application/zip"
+
+
+def test_corrupt_zip_is_retried(syncer, mock_bandcamp, tmp_path):
+    item = _download_item(mock_bandcamp)
+    downloads = [_write_corrupt_zip, _write_zip]
+
+    def next_download(url, target, **kwargs):
+        return downloads.pop(0)(url, target, **kwargs)
+
+    with (
+        patch("bandcampsync.sync.download_file", side_effect=next_download),
+        patch("bandcampsync.sync.time.sleep") as mock_sleep,
+    ):
+        assert syncer.sync_item(item) is True
+
+    mock_sleep.assert_called_once_with(syncer.retry_wait)
+    assert syncer.had_sync_errors is False
+    assert (tmp_path / "Artist" / "Album" / "track2.flac").read_text() == "two"
+
+
+def test_corrupt_zip_on_every_attempt_records_an_error(syncer, mock_bandcamp, tmp_path):
+    item = _download_item(mock_bandcamp)
+    with (
+        patch(
+            "bandcampsync.sync.download_file", side_effect=_write_corrupt_zip
+        ) as mock_download,
+        patch("bandcampsync.sync.time.sleep"),
+    ):
+        assert syncer.sync_item(item) is False
+
+    assert mock_download.call_count == syncer.max_retries
+    assert "decompress" in syncer.sync_errors[0]
+    assert not (tmp_path / "Artist" / "Album" / "bandcamp_item_id.txt").exists()
+
+
+def test_local_file_error_skips_only_that_item(syncer, mock_bandcamp, tmp_path):
+    failing = _download_item(mock_bandcamp)
+    working = _download_item(mock_bandcamp)
+    working.item_id = 2
+    working.item_title = "Second Album"
+    mock_bandcamp.purchases = [failing, working]
+
+    def disk_full_on_first_item(url, target, **kwargs):
+        if mock_download.call_count == 1:
+            raise OSError(28, "No space left on device")
+        return _write_zip(url, target)
+
+    with patch(
+        "bandcampsync.sync.download_file", side_effect=disk_full_on_first_item
+    ) as mock_download:
+        asyncio.run(syncer.sync_items())
+
+    assert mock_download.call_count == 2
+    assert len(syncer.sync_errors) == 1
+    assert "No space left on device" in syncer.sync_errors[0]
+    assert (tmp_path / "Artist" / "Second Album" / "track1.flac").exists()
+    assert not syncer.state_file_path.exists()
+
+
+def test_download_uses_current_browser_profile(syncer, mock_bandcamp):
+    item = _download_item(mock_bandcamp)
+    mock_bandcamp.browser_profile = "firefox155"
+    with patch(
+        "bandcampsync.sync.download_file", side_effect=_write_zip
+    ) as mock_download:
+        assert syncer.sync_item(item) is True
+
+    assert mock_download.call_args.kwargs["impersonate"] == "firefox155"
+
+
+def test_single_track_without_url_hints_uses_title(syncer, mock_bandcamp, tmp_path):
+    item = _download_item(mock_bandcamp)
+    item.item_type = "track"
+    item.url_hints = None
+    with (
+        patch("bandcampsync.sync.download_file", return_value="audio/flac"),
+        patch("bandcampsync.sync.copy_file") as mock_copy,
+    ):
+        assert syncer.sync_item(item) is True
+
+    assert mock_copy.call_args.args[1].name == "Album.flac"

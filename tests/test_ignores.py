@@ -46,3 +46,26 @@ def test_add_from_multiple_threads_keeps_every_item(tmp_path):
     }
     assert Ignores(ign_file_path=ignore_file, ign_patterns="").ids == expected
     assert not (tmp_path / "ignores.txt.tmp").exists()
+
+
+def test_missing_file_is_created_without_docker_template(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "bandcampsync.ignores.TEMPLATE_IGNORES_FILE", str(tmp_path / "missing.txt")
+    )
+    ignore_file = tmp_path / "ignores.txt"
+
+    ignores = Ignores(ign_file_path=ignore_file, ign_patterns="")
+    ignores.add(_item(1))
+
+    assert Ignores(ign_file_path=ignore_file, ign_patterns="").ids == {1}
+
+
+def test_missing_file_is_created_from_docker_template(tmp_path, monkeypatch):
+    template = tmp_path / "template.txt"
+    template.write_text("# Template\n")
+    monkeypatch.setattr("bandcampsync.ignores.TEMPLATE_IGNORES_FILE", str(template))
+    ignore_file = tmp_path / "ignores.txt"
+
+    Ignores(ign_file_path=ignore_file, ign_patterns="")
+
+    assert ignore_file.read_text() == "# Template\n"
