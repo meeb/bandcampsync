@@ -32,7 +32,7 @@ RUN set -x && \
   apt-get -y autoclean && \
   rm -rf /var/lib/apt/lists/* && \
   rm -rf /var/cache/apt/* && \
-  rm -rf /tmp/
+  rm -rf /tmp/*
 
 RUN set -x && \
   # Allow root to use sudo
