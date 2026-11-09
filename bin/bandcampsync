@@ -52,7 +52,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "-n",
         "--notify-url",
-        default="",
         help="URL to notify with a GET request when any new downloads have completed",
     )
     parser.add_argument(
@@ -105,6 +104,8 @@ if __name__ == "__main__":
         help='curl_cffi browser to impersonate, e.g. "chrome146", replaces the default browser profiles',
     )
     args = parser.parse_args()
+    if args.notify_url is not None and not args.notify_url.strip():
+        parser.error("--notify-url requires a value")
 
     cookies_path = Path(args.cookies).resolve()
     if not cookies_path.is_file():

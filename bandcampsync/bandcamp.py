@@ -10,6 +10,7 @@ from curl_cffi import requests
 from .config import BROWSER_PROFILE_WAIT, BROWSER_PROFILES
 from .download import mask_sig
 from .logger import get_logger
+from .names import name_key
 
 
 log = get_logger("bandcamp")
@@ -281,7 +282,13 @@ class Bandcamp:
             raise BandcampError(
                 f'Failed to parse pagedata JSON, "identity.fan" seems invalid: {identity}'
             ) from e
-        self.is_authenticated = self.user_id > 0
+        self.is_authenticated = isinstance(self.user_id, int) and self.user_id > 0
+        if not self.is_authenticated:
+            log.warning(
+                f"Bandcamp did not return an account for these cookies (fanId: "
+                f"{self.user_id}), check your cookies.txt file is valid and up to date"
+            )
+            return True
         log.info(
             f"Loaded page data, session is authenticated for user id: {self.user_id})"
         )
@@ -343,7 +350,8 @@ class Bandcamp:
         """
         if not self.is_authenticated:
             raise BandcampError(
-                "Authentication not verified, call load_pagedata() first"
+                "Bandcamp did not identify an account, check your cookies.txt file "
+                "is valid and up to date"
             )
         log.info(f"Loading purchases for user id: {self.user_id}")
         self.purchases = []
@@ -407,7 +415,7 @@ class Bandcamp:
                 if not download_url:
                     continue
                 item.download_url = download_url
-                item_key = (item.band_name, item.item_title)
+                item_key = (name_key(item.band_name), name_key(item.item_title))
                 items_by_title_key.setdefault(item_key, []).append(item)
                 log.info(
                     f"Found item: {item.band_name} / {item.item_title} (id:{item.item_id})"
@@ -423,7 +431,8 @@ class Bandcamp:
                 )
                 break
 
-        # De-duplicate multiple purchases sharing the same artist and title.
+        # De-duplicate multiple purchases that would share the same artist and title
+        # directory once their names are cleaned.
         self._deduplicate_purchases(items_by_title_key)
         log.info(f"Loaded {len(self.purchases)} purchases")
         return True

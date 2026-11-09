@@ -1,7 +1,7 @@
 import importlib.util
 from pathlib import Path
 from unittest.mock import Mock, PropertyMock, patch
-from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
+from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile, ZipInfo
 
 import pytest
 from curl_cffi import requests
@@ -9,6 +9,7 @@ from curl_cffi import requests
 import bandcampsync.download
 from bandcampsync.download import (
     DownloadCorrupt,
+    DownloadUnexpectedLayout,
     _fetch_html_body,
     _is_expired_download_page,
     _read_html_body,
@@ -127,31 +128,49 @@ def test_unzip_shortens_names_the_filesystem_cannot_use(tmp_path):
     long_name = "\u28ce" * 100
     with ZipFile(path, "w") as archive:
         archive.writestr(f"{long_name}.flac", "audio")
-        archive.writestr(f"{long_name}/track.flac", "nested")
         archive.writestr("cover.jpg", "art")
 
     assert unzip_file(path, tmp_path / "out") is True
 
-    extracted = {
-        file.relative_to(tmp_path / "out").as_posix(): file.read_text()
-        for file in (tmp_path / "out").rglob("*")
-        if file.is_file()
-    }
+    extracted = {file.name: file.read_text() for file in (tmp_path / "out").iterdir()}
     assert extracted["cover.jpg"] == "art"
-    assert sorted(extracted.values()) == ["art", "audio", "nested"]
-    assert any(name.endswith(".flac") and name.count("/") == 0 for name in extracted)
-    assert any(name.endswith("/track.flac") for name in extracted)
+    assert sorted(extracted.values()) == ["art", "audio"]
+    assert all(len(name.encode()) <= 255 for name in extracted)
 
 
-def test_unzip_does_not_write_outside_the_target_directory(tmp_path):
+def test_unzip_numbers_names_that_differ_only_by_case(tmp_path):
     path = tmp_path / "download.zip"
     with ZipFile(path, "w") as archive:
-        archive.writestr("../outside.flac", "bad")
+        archive.writestr("Track.flac", "one")
+        archive.writestr("TRACK.flac", "two")
 
     unzip_file(path, tmp_path / "out")
 
+    assert (tmp_path / "out" / "Track.flac").read_text() == "one"
+    assert (tmp_path / "out" / "TRACK (2).flac").read_text() == "two"
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "bonus/track.flac",
+        "bonus/",
+        "../outside.flac",
+        "bonus\\track.flac",
+        "/track.flac",
+    ],
+)
+def test_unzip_rejects_directories_before_extracting_anything(tmp_path, name):
+    path = tmp_path / "download.zip"
+    with ZipFile(path, "w") as archive:
+        archive.writestr("first.flac", "audio")
+        archive.writestr(ZipInfo(name), "data")
+
+    with pytest.raises(DownloadUnexpectedLayout):
+        unzip_file(path, tmp_path / "out")
+
+    assert list((tmp_path / "out").iterdir()) == []
     assert not (tmp_path / "outside.flac").exists()
-    assert (tmp_path / "out" / "outside.flac").read_text() == "bad"
 
 
 def test_temporary_download_path_is_closed_and_removed(tmp_path):

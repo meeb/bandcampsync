@@ -671,3 +671,23 @@ def test_keyboard_interrupt_is_not_treated_as_an_item_error(syncer, mock_bandcam
         syncer.sync_item(item)
 
     assert syncer.sync_errors == []
+
+
+def test_zip_containing_directory_is_skipped_without_retrying(
+    syncer, mock_bandcamp, tmp_path
+):
+    item = _download_item(mock_bandcamp)
+
+    def write_nested_zip(url, target, **kwargs):
+        with ZipFile(target, "w") as archive:
+            archive.writestr("bonus/track.flac", "audio")
+        return "application/zip"
+
+    with patch(
+        "bandcampsync.sync.download_file", side_effect=write_nested_zip
+    ) as mock_download:
+        assert syncer.sync_item(item) is False
+
+    assert mock_download.call_count == 1
+    assert "contains a directory" in syncer.sync_errors[0]
+    assert not (tmp_path / "Artist" / "Album").exists()

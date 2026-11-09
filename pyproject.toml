@@ -6,12 +6,13 @@ authors = [
 ]
 description = "A Python module and script to synchronise media purchased on bandcamp.com with a local directory."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "BSD-3-Clause"
 license-files = ["LICENSE",]
 dependencies = [
     "beautifulsoup4>=4.14.3",
     "curl-cffi>=0.17.0",
+    "tzdata; sys_platform == 'win32'",
 ]
 keywords = [
   "bandcampsync",

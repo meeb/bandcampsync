@@ -1,3 +1,4 @@
+from urllib.parse import urlsplit
 from curl_cffi import CurlError, requests
 from .config import INTERNAL_USER_AGENT
 from .logger import get_logger
@@ -20,13 +21,21 @@ class NotifyURL:
                 f"Notify created: {self.method} to {self.url} with headers: {list(self.headers.keys())}"
             )
 
+    @staticmethod
+    def is_valid_url(url):
+        parts = urlsplit(url)
+        if parts.scheme in ("http", "https") and parts.netloc:
+            return True
+        log.error(f"Invalid notify URL (must be http or https): {url}")
+        return False
+
     def parse_notify_str(self):
         if not self.notify_str:
             return
         parts = self.notify_str.split()
         if len(parts) == 1:
             self.url = parts[0]
-            self.valid = True
+            self.valid = self.is_valid_url(self.url)
             return
         elif len(parts) == 4:
             method = parts[0].upper()
@@ -35,6 +44,8 @@ class NotifyURL:
                 return
             self.method = method
             self.url = parts[1]
+            if not self.is_valid_url(self.url):
+                return
             headers = parts[2]
             if headers != "-":
                 for header in headers.split(","):

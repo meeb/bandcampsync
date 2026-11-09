@@ -96,3 +96,42 @@ def test_single_header_is_sent():
     _, kwargs = mock_post.call_args
     assert kwargs["headers"]["Authorization"] == "abc"
     assert kwargs["data"] == "body"
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        "not-a-url",
+        "ftp://example.com/",
+        "http://",
+        "GET not-a-url - -",
+        "POST http://example.com/ Authorization -",
+        "POST http://example.com/ =abc -",
+        "DELETE http://example.com/ - -",
+        "GET http://example.com/",
+    ],
+)
+def test_invalid_notify_settings_fail_when_options_are_created(tmp_path, target):
+    with pytest.raises(ValueError, match="Invalid notify URL"):
+        BandcampSyncOptions(
+            cookies="identity=test", dir_path=tmp_path, notify_url=target
+        )
+
+
+@pytest.mark.parametrize("target", [None, "", "   "])
+def test_blank_notify_url_means_no_notifications(tmp_path, target):
+    options = BandcampSyncOptions(
+        cookies="identity=test", dir_path=tmp_path, notify_url=target
+    )
+
+    assert options.notify_url is None
+
+
+def test_valid_notify_url_is_kept_with_surrounding_space_removed(tmp_path):
+    options = BandcampSyncOptions(
+        cookies="identity=test",
+        dir_path=tmp_path,
+        notify_url=" POST https://example.com/hook Authorization=abc body ",
+    )
+
+    assert options.notify_url == "POST https://example.com/hook Authorization=abc body"

@@ -1,21 +1,11 @@
 import os
 from tempfile import NamedTemporaryFile
-from unicodedata import normalize
 from bandcampsync.bandcamp import BandcampItem
 from .logger import get_logger
-from .names import fit_name
+from .names import clean_name, fit_name, unique_name
 
 
 log = get_logger("media")
-# Device names which can't be used for a file or directory on Windows, with any extension
-WINDOWS_RESERVED_NAMES = {
-    "CON",
-    "PRN",
-    "AUX",
-    "NUL",
-    *(f"COM{number}" for number in range(1, 10)),
-    *(f"LPT{number}" for number in range(1, 10)),
-}
 
 
 class LocalMedia:
@@ -51,26 +41,7 @@ class LocalMedia:
         if index_on_init and (not skip_item_index or len(self.ignores.ids) < 1):
             self.index()
 
-    @staticmethod
-    def _clean_path(path_str, windows=os.name == "nt"):
-        path_str = str(path_str)
-        disallowed_punctuation = "\"#%'*/?\\`:"
-        normalized_path = normalize("NFKD", path_str)
-        outstr = ""
-        for c in normalized_path:
-            if c not in disallowed_punctuation:
-                outstr += c
-        if windows:
-            # None of these can exist on Windows, and it ignores trailing dots and spaces,
-            # so removing them doesn't change the name of anything already downloaded
-            outstr = "".join(c for c in outstr if c not in "<>|" and ord(c) >= 32)
-            outstr = outstr.rstrip(" .")
-            if outstr.split(".")[0].strip().upper() in WINDOWS_RESERVED_NAMES:
-                outstr = f"_{outstr}"
-        # Would otherwise resolve to the current or parent directory
-        if outstr.strip() in ("", ".", ".."):
-            return "_"
-        return outstr
+    _clean_path = staticmethod(clean_name)
 
     @staticmethod
     def clean_format(format_str):
@@ -197,10 +168,17 @@ class LocalMedia:
             )
         )
 
-    def get_path_for_file(self, local_path, file_name):
-        return local_path / fit_name(
+    def get_path_for_file(self, local_path, file_name, used_names=None):
+        """
+        Returns the path for a file. Pass used_names, a set kept between the calls for an
+        item, to number any files which would otherwise overwrite each other.
+        """
+        name = fit_name(
             self.media_dir, self._clean_path(file_name), keep_extension=True
         )
+        if used_names is not None:
+            name = unique_name(name, used_names)
+        return local_path / name
 
     def write_bandcamp_id(self, item, dirpath):
         try:

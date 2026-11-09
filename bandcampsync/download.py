@@ -10,7 +10,7 @@ from zipfile import BadZipFile, ZipFile
 from bs4 import BeautifulSoup
 from curl_cffi import requests
 from .logger import get_logger
-from .names import fit_name
+from .names import fit_name, unique_name
 
 
 log = get_logger("download")
@@ -33,6 +33,10 @@ class DownloadExpired(ValueError):
 
 
 class DownloadCorrupt(ValueError):
+    pass
+
+
+class DownloadUnexpectedLayout(ValueError):
     pass
 
 
@@ -165,11 +169,18 @@ def unzip_file(decompress_from, decompress_to):
     os.makedirs(decompress_to, exist_ok=True)
     try:
         with ZipFile(decompress_from) as z:
-            for info in z.infolist():
+            infos = z.infolist()
+            for info in infos:
+                if "/" in info.filename or "\\" in info.filename:
+                    raise DownloadUnexpectedLayout(
+                        f"Download contains a directory: {info.filename}"
+                    )
+            used_names = set()
+            for info in infos:
                 # Only the name to extract to is changed, this doesn't affect reading it
-                info.filename = "/".join(
-                    fit_name(decompress_to, part, keep_extension=True)
-                    for part in info.filename.split("/")
+                info.filename = unique_name(
+                    fit_name(decompress_to, info.filename, keep_extension=True),
+                    used_names,
                 )
                 z.extract(info, decompress_to)
     except (BadZipFile, EOFError, zlib.error) as e:

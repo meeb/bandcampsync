@@ -337,3 +337,55 @@ def test_pagination_stops_when_the_token_does_not_change():
 
     assert bandcamp._request.call_count == 1
     assert len(bandcamp.purchases) == 1
+
+
+@pytest.mark.parametrize("fan_id", [None, 0])
+def test_missing_fan_id_warns_and_stops_before_loading(monkeypatch, caplog, fan_id):
+    home = (
+        '<html><div id="HomepageApp" data-blob="'
+        + escape(
+            json.dumps(
+                {"pageContext": {"identity": {"fanId": fan_id, "isFanVerified": False}}}
+            )
+        )
+        + '"></div></html>'
+    )
+    _install_fake_session(monkeypatch, [_Response(home)])
+    bandcamp = Bandcamp("identity=test")
+
+    assert bandcamp.verify_authentication() is True
+
+    assert bandcamp.is_authenticated is False
+    assert "did not return an account" in caplog.text
+    with pytest.raises(BandcampError, match="check your cookies"):
+        bandcamp.load_purchases()
+
+
+def test_load_purchases_groups_names_matching_after_cleaning():
+    bandcamp = _create_bandcamp()
+    items = [
+        {
+            "item_id": item_id,
+            "band_name": "Band",
+            "item_title": title,
+            "token": f"token-{item_id}",
+            "sale_item_type": "a",
+            "sale_item_id": item_id,
+        }
+        for item_id, title in ((1, "What?"), (2, "WHAT"), (3, "Other"))
+    ]
+    pages = [
+        {
+            "items": items,
+            "redownload_urls": {
+                f"a{i}": f"https://bandcamp.test/{i}" for i in (1, 2, 3)
+            },
+        },
+        {"items": [], "redownload_urls": {}},
+    ]
+    bandcamp._request = Mock(side_effect=pages)
+
+    bandcamp.load_purchases()
+
+    suffixes = {item.item_id: item.folder_suffix for item in bandcamp.purchases}
+    assert suffixes == {1: " [1]", 2: " [2]", 3: ""}

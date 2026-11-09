@@ -23,6 +23,7 @@ from .download import (
     DownloadBadStatusCode,
     DownloadCorrupt,
     DownloadExpired,
+    DownloadUnexpectedLayout,
 )
 
 
@@ -323,11 +324,10 @@ class Syncer:
 
         local_path = self.local_media.get_path_for_purchase(item)
 
-        # Older purchases aren't loaded when stopping at the checkpoint or a date, so
-        # anything sharing a name with one can't be de-duplicated when loading purchases
-        if (
-            self.collection_checkpoint_token or self.until_date
-        ) and self.local_media.is_path_used_by_other_item(item, local_path):
+        # Purchases sharing a name are given separate folders when loading them, but the
+        # other one may not be loaded or may no longer be in the collection. This goes in
+        # its own folder rather than being skipped or mixed in with the other item's files
+        if self.local_media.is_path_used_by_other_item(item, local_path):
             log.info(
                 f'"{local_path}" is used by a different item, using a separate folder '
                 f"for (id:{item.item_id})"
@@ -409,9 +409,10 @@ class Syncer:
                                         f"Failed to create directory: {local_path} ({e}), skipping file extraction"
                                     )
                                     return False
+                                used_names = set()
                                 for file_path in temp_path.iterdir():
                                     file_dest = self.local_media.get_path_for_file(
-                                        local_path, file_path.name
+                                        local_path, file_path.name, used_names
                                     )
                                     log.info(
                                         f'Moving extracted file: "{file_path}" to "{file_dest}"'
@@ -508,6 +509,12 @@ class Syncer:
                             f"All {self.max_retries} attempts failed for {item.band_name} / {item.item_title}: {e}. Skipping."
                         )
                         return False
+                except DownloadUnexpectedLayout as e:
+                    self._record_sync_error(
+                        f'Skipping "{item.band_name} / {item.item_title}" '
+                        f"(id:{item.item_id}): {e}"
+                    )
+                    return False
                 except DownloadExpired:
                     self._record_sync_error(
                         f'Download expired and requires email confirmation on Bandcamp for "{item.band_name} / {item.item_title}" '

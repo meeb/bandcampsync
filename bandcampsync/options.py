@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from datetime import date
 from typing import Optional
+from .notify import NotifyURL
 
 
 @dataclass
@@ -22,3 +23,9 @@ class BandcampSyncOptions:
     sync_ignore_file: bool = False
     skip_hidden: bool = False
     impersonate: Optional[str] = None
+
+    def __post_init__(self):
+        # Bad notify settings fail now, rather than after a sync has downloaded something
+        self.notify_url = (self.notify_url or "").strip() or None
+        if self.notify_url and not NotifyURL(self.notify_url).valid:
+            raise ValueError("Invalid notify URL, see the error logged above")

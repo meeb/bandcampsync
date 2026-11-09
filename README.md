@@ -51,8 +51,11 @@ The media directory will have the following format:
 
 The directory format of `artist_name`/`item_title` is not editable. If you have
 multiple purchases with the same artist and title they are kept separate by adding the
-item ID to the directory name, for example `Album Name [123456]`. Names your filesystem
-can't use, such as those over its length limit, are shortened and have a short hash added.
+item ID to the directory name, for example `Album Name [123456]`. This includes names
+that only match once they're cleaned for use as a directory name, or that differ only by
+case. Files in an album which would overwrite each other are numbered, for example
+`Track (2).flac`. Names your filesystem can't use, such as those over its length limit,
+are shortened and have a short hash added.
 
 `bandcamp_item_id.txt` is a special file created in each item directory and
 it contains the Bandcamp item ID as an integer. This file is used by BandcampSync
@@ -187,6 +190,10 @@ the filesystem to the ignore file, same as the `--sync-ignore-file` CLI argument
 
 `SKIP_HIDDEN` can be set to true to skip items that have the hidden flag set, same as
 the `--skip-hidden` CLI argument.
+
+`IMPERSONATE` can be set to the `curl_cffi` browser to use for all requests, instead of
+the default browser profiles and their automatic fallback, same as the `--impersonate`
+CLI argument.
 
 `FORMAT` can be set to the media format to download, defaults to `flac`, same as the
 `--format` CLI argument.

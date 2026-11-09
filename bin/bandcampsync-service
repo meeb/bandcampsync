@@ -61,6 +61,7 @@ if __name__ == "__main__":
     skip_item_index_env = os.getenv("SKIP_ITEM_INDEX", "0")
     sync_ignore_file_env = os.getenv("SYNC_IGNORE_FILE", "0")
     skip_hidden_env = os.getenv("SKIP_HIDDEN", "0")
+    impersonate = os.getenv("IMPERSONATE", "")
 
     try:
         max_retries = int(max_retries_env)
@@ -127,6 +128,7 @@ if __name__ == "__main__":
         skip_item_index=skip_item_index,
         sync_ignore_file=sync_ignore_file,
         skip_hidden=skip_hidden,
+        impersonate=impersonate,
     )
 
     log.info(f"BandcampSync v{version} starting")

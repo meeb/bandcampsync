@@ -1,7 +1,7 @@
 import hashlib
 import os
 import re
-from unicodedata import category
+from unicodedata import category, normalize
 
 
 # Filesystems limit names to either 255 bytes, 255 UTF-16 units or sometimes fewer, such
@@ -11,6 +11,62 @@ SHORTENED_NAME_BYTES = (255, 143)
 # bulk of very long "zalgo" style names and can't be used on every filesystem.
 REMOVED_CATEGORIES = ("Mn", "Me", "Cc", "Cf", "Cs")
 MAX_EXTENSION_BYTES = 16
+# Device names which can't be used for a file or directory on Windows, with any extension
+WINDOWS_RESERVED_NAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    *(f"COM{number}" for number in range(1, 10)),
+    *(f"LPT{number}" for number in range(1, 10)),
+}
+
+
+def clean_name(path_str, windows=os.name == "nt"):
+    path_str = str(path_str)
+    disallowed_punctuation = "\"#%'*/?\\`:"
+    normalized_path = normalize("NFKD", path_str)
+    outstr = ""
+    for c in normalized_path:
+        if c not in disallowed_punctuation:
+            outstr += c
+    if windows:
+        # None of these can exist on Windows, and it ignores trailing dots and spaces,
+        # so removing them doesn't change the name of anything already downloaded
+        outstr = "".join(c for c in outstr if c not in "<>|" and ord(c) >= 32)
+        outstr = outstr.rstrip(" .")
+        if outstr.split(".")[0].strip().upper() in WINDOWS_RESERVED_NAMES:
+            outstr = f"_{outstr}"
+    # Would otherwise resolve to the current or parent directory
+    if outstr.strip() in ("", ".", ".."):
+        return "_"
+    return outstr
+
+
+def name_key(name):
+    """
+    Names with the same key share a directory or file once they're cleaned, including on
+    filesystems that ignore case such as the defaults on macOS and Windows.
+    """
+    return clean_name(name).casefold()
+
+
+def unique_name(name, used):
+    """
+    Returns the name, numbered if needed so it's not one of the used names, and adds it
+    to them. For example "track.flac" then "track (2).flac".
+    """
+    stem, extension = os.path.splitext(name)
+    candidate = name
+    number = 1
+    while candidate.casefold() in used:
+        number += 1
+        suffix = f" ({number}){extension}"
+        room = SHORTENED_NAME_BYTES[0] - len(suffix.encode())
+        cut = stem.encode("utf-8", "surrogatepass")[:room].decode(errors="ignore")
+        candidate = f"{cut}{suffix}"
+    used.add(candidate.casefold())
+    return candidate
 
 
 def is_usable_name(directory, name):

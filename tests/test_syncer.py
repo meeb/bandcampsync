@@ -2,8 +2,10 @@
 
 import json
 import asyncio
+from contextlib import nullcontext
 from datetime import date, datetime
 from unittest.mock import Mock, patch
+from zipfile import ZipFile
 import pytest
 from bandcampsync.bandcamp import Bandcamp
 from bandcampsync.sync import Syncer
@@ -367,7 +369,7 @@ def _collection_item(item_id, token, **extra):
     }
 
 
-def _run_collection_sync(tmp_path, items, downloadable, **options):
+def _run_collection_sync(tmp_path, items, downloadable, download=True, **options):
     """Runs a real Syncer and Bandcamp, returning the IDs of the items downloaded."""
     pages = [
         {
@@ -399,7 +401,9 @@ def _run_collection_sync(tmp_path, items, downloadable, **options):
         patch.object(
             Bandcamp, "check_download_stat", return_value="https://bandcamp.test/file"
         ),
-        patch("bandcampsync.sync.download_file", return_value="audio/flac"),
+        patch("bandcampsync.sync.download_file", return_value="audio/flac")
+        if download
+        else nullcontext(),
     ):
         syncer = Syncer(
             BandcampSyncOptions(cookies="identity=test", dir_path=tmp_path, **options),
@@ -520,14 +524,18 @@ def test_failed_item_is_retried_in_the_same_folder(tmp_path):
     assert not (tmp_path / "Band" / "Same Title [2]").exists()
 
 
-def test_same_name_without_checkpoint_keeps_existing_skip(tmp_path):
-    """Without a checkpoint both items are loaded, so a mismatch isn't a new purchase."""
+def test_folder_used_by_item_not_in_collection_gets_separate_folder(tmp_path):
+    """The other item isn't loaded, and this must not download again on every run."""
     album = tmp_path / "Band" / "Same Title"
     album.mkdir(parents=True)
     (album / "bandcamp_item_id.txt").write_text("1\n")
 
+    assert _run_collection_sync(tmp_path, [_same_name_item(2, "new")], [2]) == [2]
+    assert (album / "bandcamp_item_id.txt").read_text() == "1\n"
+    new_album = tmp_path / "Band" / "Same Title [2]"
+    assert (new_album / "bandcamp_item_id.txt").read_text() == "2\n"
+    (tmp_path / Syncer.STATE_FILENAME).unlink()
     assert _run_collection_sync(tmp_path, [_same_name_item(2, "new")], [2]) == []
-    assert not (tmp_path / "Band" / "Same Title [2]").exists()
 
 
 def test_item_with_name_too_long_for_filesystem_is_downloaded_once(tmp_path):
@@ -567,3 +575,46 @@ def test_until_date_keeps_new_purchase_with_old_name_separate(tmp_path):
 
     assert downloaded == [2]
     assert (tmp_path / "Band" / "Same Title [2]" / "bandcamp_item_id.txt").exists()
+
+
+@pytest.mark.parametrize(
+    "first,second", [("What?", "What"), ("Album", "ALBUM"), ("Caf\u00e9", "Cafe\u0301")]
+)
+@pytest.mark.parametrize("use_ignore_file", [False, True])
+def test_names_matching_after_cleaning_get_separate_folders(
+    tmp_path, first, second, use_ignore_file
+):
+    options = {}
+    if use_ignore_file:
+        options["ign_file_path"] = tmp_path / "ignores.txt"
+        options["ign_file_path"].write_text("# Ignored items\n")
+    items = [_collection_item(1, "first"), _collection_item(2, "second")]
+    items[0]["item_title"] = first
+    items[1]["item_title"] = second
+
+    downloaded = _run_collection_sync(tmp_path, items, [1, 2], **options)
+
+    assert downloaded == [1, 2]
+    folders = sorted(path.name for path in (tmp_path / "Band").iterdir())
+    assert len(folders) == 2
+    assert {name.rsplit(" ", 1)[-1] for name in folders} == {"[1]", "[2]"}
+    assert all(len(list((tmp_path / "Band" / name).iterdir())) >= 1 for name in folders)
+
+
+def test_album_files_matching_after_cleaning_are_numbered(tmp_path):
+    item = _collection_item(1, "token")
+    item["item_type"] = "album"
+
+    def write_zip(url, target, **kwargs):
+        with ZipFile(target, "w") as archive:
+            archive.writestr("Track?.flac", "one")
+            archive.writestr("Track.flac", "two")
+        return "application/zip"
+
+    with patch("bandcampsync.sync.download_file", side_effect=write_zip):
+        _run_collection_sync(tmp_path, [item], [1], download=False)
+
+    album = tmp_path / "Band" / "Album 1"
+    contents = {path.read_text() for path in album.glob("Track*.flac")}
+    assert contents == {"one", "two"}
+    assert (album / "Track (2).flac").exists()
