@@ -1,13 +1,15 @@
 import math
 import shutil
-from zipfile import ZipFile
+import zlib
+from zipfile import BadZipFile, ZipFile
 from bs4 import BeautifulSoup
 from curl_cffi import requests
+from .config import BROWSER_PROFILES
 from .logger import get_logger
 
 
 log = get_logger("download")
-DEFAULT_IMPERSONATE = "chrome"
+DEFAULT_IMPERSONATE = BROWSER_PROFILES[0]
 
 
 def mask_sig(url):
@@ -31,6 +33,10 @@ class DownloadInvalidContentType(ValueError):
 
 
 class DownloadExpired(ValueError):
+    pass
+
+
+class DownloadCorrupt(ValueError):
     pass
 
 
@@ -146,8 +152,11 @@ def is_zip_file(file_path):
 
 
 def unzip_file(decompress_from, decompress_to):
-    with ZipFile(decompress_from) as z:
-        z.extractall(decompress_to)
+    try:
+        with ZipFile(decompress_from) as z:
+            z.extractall(decompress_to)
+    except (BadZipFile, EOFError, zlib.error) as e:
+        raise DownloadCorrupt(f"Failed to decompress download: {e}") from e
     return True
 
 
