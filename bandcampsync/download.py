@@ -7,6 +7,7 @@ from .logger import get_logger
 
 
 log = get_logger("download")
+DEFAULT_IMPERSONATE = "chrome"
 
 
 def mask_sig(url):
@@ -45,11 +46,13 @@ def _is_expired_download_page(html):
     return "display:none" not in style
 
 
-def _fetch_html_body(url):
+def _fetch_html_body(url, impersonate=None):
     if not url:
         return ""
     try:
-        resp = requests.get(url, stream=False, impersonate="chrome")
+        resp = requests.get(
+            url, stream=False, impersonate=impersonate or DEFAULT_IMPERSONATE
+        )
     except requests.exceptions.RequestException as e:
         log.warning(f"Failed to fetch HTML body for: {url} ({e})")
         return ""
@@ -59,7 +62,7 @@ def _fetch_html_body(url):
         resp.close()
 
 
-def _read_html_body(response):
+def _read_html_body(response, impersonate=None):
     html_body = ""
     try:
         html_body = response.text or ""
@@ -73,7 +76,7 @@ def _read_html_body(response):
             log.warning(f"Failed to decode HTML body for: {response.url} ({e})")
             pass
     if not html_body:
-        html_body = _fetch_html_body(response.url)
+        html_body = _fetch_html_body(response.url, impersonate)
     return html_body
 
 
@@ -84,6 +87,7 @@ def download_file(
     chunk_size=8192,
     logevery=10,
     disallow_content_type="text/html",
+    impersonate=None,
 ):
     """
     Attempts to stream a download to an open target file handle in chunks. If the
@@ -93,7 +97,7 @@ def download_file(
     text = True if "t" in mode else False
     data_streamed = 0
     last_log = 0
-    r = requests.get(url, stream=True, impersonate="chrome")
+    r = requests.get(url, stream=True, impersonate=impersonate or DEFAULT_IMPERSONATE)
     try:
         # r.raise_for_status()
         if r.status_code != 200:
@@ -105,7 +109,7 @@ def download_file(
         content_type_parts = content_type.split(";")
         major_content_type = content_type_parts[0].strip()
         if major_content_type == disallow_content_type:
-            html_body = _read_html_body(r)
+            html_body = _read_html_body(r, impersonate)
             if _is_expired_download_page(html_body):
                 raise DownloadExpired(
                     "Download expired and requires email confirmation on Bandcamp"

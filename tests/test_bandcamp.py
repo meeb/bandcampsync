@@ -11,6 +11,7 @@ from bandcampsync.bandcamp import (
     BandcampError,
     BandcampItem,
 )
+from bandcampsync.config import BROWSER_PROFILES
 
 
 def _load_payload(name):
@@ -179,16 +180,44 @@ def test_verify_authentication_retries_after_client_challenge(monkeypatch):
     assert bandcamp.verify_authentication() is True
     assert bandcamp.user_id == 1
     assert bandcamp.user_verified is True
-    assert created == list(Bandcamp.BROWSER_PROFILES[:2])
-    assert bandcamp.browser_profile == Bandcamp.BROWSER_PROFILES[1]
+    assert created == list(BROWSER_PROFILES[:2])
+    assert bandcamp.browser_profile == BROWSER_PROFILES[1]
 
 
 def test_verify_authentication_reports_client_challenge(monkeypatch):
     _install_fake_session(
         monkeypatch,
-        [_Response(CHALLENGE_HTML) for _ in Bandcamp.BROWSER_PROFILES],
+        [_Response(CHALLENGE_HTML) for _ in BROWSER_PROFILES],
     )
     bandcamp = Bandcamp("identity=test")
 
     with pytest.raises(BandcampError, match="client challenge"):
         bandcamp.verify_authentication()
+
+
+def test_impersonate_replaces_fallback_profiles(monkeypatch):
+    created = _install_fake_session(monkeypatch, [_Response(CHALLENGE_HTML)])
+    bandcamp = Bandcamp("identity=test", impersonate=" safari260 ")
+
+    with pytest.raises(BandcampError, match="client challenge"):
+        bandcamp.verify_authentication()
+    assert bandcamp.impersonate == "safari260"
+    assert created == ["safari260"]
+
+
+@pytest.mark.parametrize("impersonate", [None, "", "   "])
+def test_missing_impersonate_uses_configured_profiles(impersonate):
+    bandcamp = Bandcamp("identity=test", impersonate=impersonate)
+
+    assert bandcamp.impersonate is None
+    assert bandcamp.browser_profiles == tuple(BROWSER_PROFILES)
+
+
+def test_no_profiles_available_is_reported(monkeypatch):
+    monkeypatch.setattr("bandcampsync.bandcamp.BROWSER_PROFILES", ())
+
+    with pytest.raises(BandcampError, match="No browser profiles"):
+        Bandcamp("identity=test")
+    assert Bandcamp("identity=test", impersonate="safari260").browser_profiles == (
+        "safari260",
+    )

@@ -99,6 +99,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Skip items that have the hidden flag set",
     )
+    parser.add_argument(
+        "--impersonate",
+        default=None,
+        help='curl_cffi browser to impersonate, e.g. "chrome146", replaces the default browser profiles',
+    )
     args = parser.parse_args()
     if args.version:
         print(f"BandcampSync version: {version}", file=sys.stdout)
@@ -165,6 +170,7 @@ if __name__ == "__main__":
         skip_item_index=args.skip_item_index,
         sync_ignore_file=args.sync_ignore_file,
         skip_hidden=args.skip_hidden,
+        impersonate=args.impersonate,
     )
 
     log.info(f"BandcampSync v{version} starting")

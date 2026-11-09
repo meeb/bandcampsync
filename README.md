@@ -250,6 +250,9 @@ ignore file with `-I / --ignore-file`.
 When `--skip-hidden` is passed, any items in your Bandcamp collection that have the hidden
 flag set will be skipped during sync.
 
+When `--impersonate` is passed, the named `curl_cffi` browser (e.g. `chrome146`) is used
+for all requests instead of the default browser profiles and their automatic fallback.
+
 
 You can notify an external HTTP server when new items have been loaded with `-n` or
 `--notify-url`.

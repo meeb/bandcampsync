@@ -66,7 +66,9 @@ class Syncer:
             index_on_init=index_local_media,
         )
 
-        self.bandcamp = Bandcamp(cookies=options.cookies)
+        self.bandcamp = Bandcamp(
+            cookies=options.cookies, impersonate=options.impersonate
+        )
         self.bandcamp.verify_authentication()
         self.bandcamp.load_purchases(stop_when=self._should_stop_loading_purchase)
 
@@ -327,7 +329,9 @@ class Syncer:
                             f"from {mask_sig(download_file_url)} to {temp_file.name}"
                         )
                         download_content_type = download_file(
-                            download_file_url, temp_file
+                            download_file_url,
+                            temp_file,
+                            impersonate=self.bandcamp.impersonate,
                         )
                         temp_file.seek(0)
                         temp_file_path = Path(temp_file.name)

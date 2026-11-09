@@ -6,6 +6,7 @@ from html import unescape as html_unescape
 from urllib.parse import urlsplit, urlunsplit
 from bs4 import BeautifulSoup
 from curl_cffi import requests
+from .config import BROWSER_PROFILES
 from .download import mask_sig
 from .logger import get_logger
 
@@ -28,17 +29,9 @@ class Bandcamp:
         "index": "/",
         "collection_items": "/api/fancollection/1/collection_items",
     }
-    # curl_cffi's "chrome" alias is currently rejected by Bandcamp's Fastly
-    # client challenge, which returns a small "Client Challenge" page and no
-    # HomepageApp markup. These fingerprints still receive the real site.
-    BROWSER_PROFILES = (
-        "chrome146",
-        "chrome150",
-        "firefox155",
-        "safari260",
-    )
 
-    def __init__(self, cookies=""):
+    def __init__(self, cookies="", impersonate=None):
+        self._set_browser_profiles(impersonate)
         self.is_authenticated = False
         self.user_id = 0
         self.user_verified = False
@@ -58,8 +51,27 @@ class Bandcamp:
         identity_snip = identity.value[:20]
         log.info(f"Located Bandcamp identity in cookies: {identity_snip}...")
         # Create a "requests" session and map our SimpleCookie to it
-        self.browser_profile = self.BROWSER_PROFILES[0]
+        self.browser_profile = self.browser_profiles[0]
         self.session = self._open_session(self.browser_profile)
+
+    def _set_browser_profiles(self, impersonate):
+        """
+        Sets the browser profiles to try, in order. A named profile replaces the
+        configured fallbacks so no other browser is ever used in its place, a
+        missing or blank name means no override was requested.
+        """
+        impersonate = impersonate.strip() if impersonate else ""
+        if impersonate:
+            self.impersonate = impersonate
+            self.browser_profiles = (impersonate,)
+            return
+        if not BROWSER_PROFILES:
+            raise BandcampError(
+                "No browser profiles to use, name one with --impersonate or add "
+                "some to BROWSER_PROFILES in config.py"
+            )
+        self.impersonate = None
+        self.browser_profiles = tuple(BROWSER_PROFILES)
 
     def load_cookies(self, cookies_str):
         self.cookies = SimpleCookie()
@@ -123,7 +135,7 @@ class Bandcamp:
     ):
         profiles = (self.browser_profile,) + tuple(
             profile
-            for profile in self.BROWSER_PROFILES
+            for profile in self.browser_profiles
             if profile != self.browser_profile
         )
         response = None

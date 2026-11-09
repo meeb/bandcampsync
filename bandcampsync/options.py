@@ -21,3 +21,4 @@ class BandcampSyncOptions:
     skip_item_index: bool = False
     sync_ignore_file: bool = False
     skip_hidden: bool = False
+    impersonate: Optional[str] = None
