@@ -11,7 +11,7 @@ from bandcampsync.bandcamp import (
     BandcampError,
     BandcampItem,
 )
-from bandcampsync.config import BROWSER_PROFILES
+from bandcampsync.config import BROWSER_PROFILE_WAIT, BROWSER_PROFILES
 
 
 def _load_payload(name):
@@ -150,6 +150,8 @@ class _Response:
 
 
 class _FakeCookieJar:
+    jar = ()
+
     def set(self, *args, **kwargs):
         return None
 
@@ -167,6 +169,7 @@ def _install_fake_session(monkeypatch, responses):
             return responses.pop(0)
 
     monkeypatch.setattr("bandcampsync.bandcamp.requests.Session", FakeSession)
+    monkeypatch.setattr("bandcampsync.bandcamp.sleep", lambda seconds: None)
     return created
 
 
@@ -221,3 +224,49 @@ def test_no_profiles_available_is_reported(monkeypatch):
     assert Bandcamp("identity=test", impersonate="safari260").browser_profiles == (
         "safari260",
     )
+
+
+def test_blocked_request_reports_url_and_keeps_current_profile(monkeypatch):
+    _install_fake_session(
+        monkeypatch,
+        [_Response(CHALLENGE_HTML) for _ in BROWSER_PROFILES],
+    )
+    waits = []
+    monkeypatch.setattr("bandcampsync.bandcamp.sleep", waits.append)
+    bandcamp = Bandcamp("identity=test")
+
+    with pytest.raises(BandcampError) as error:
+        bandcamp._request("get", "https://bandcamp.com/page")
+
+    assert "https://bandcamp.com/page" in str(error.value)
+    for profile in BROWSER_PROFILES:
+        assert profile in str(error.value)
+    assert waits == [BROWSER_PROFILE_WAIT] * (len(BROWSER_PROFILES) - 1)
+    assert bandcamp.browser_profile == BROWSER_PROFILES[0]
+
+
+def test_working_profile_is_kept_for_later_requests(monkeypatch):
+    created = _install_fake_session(
+        monkeypatch,
+        [_Response(CHALLENGE_HTML), _Response("first"), _Response("second")],
+    )
+    waits = []
+    monkeypatch.setattr("bandcampsync.bandcamp.sleep", waits.append)
+    bandcamp = Bandcamp("identity=test")
+
+    assert bandcamp._request("get", "https://bandcamp.com/", as_raw=True) == "first"
+    assert bandcamp._request("get", "https://bandcamp.com/", as_raw=True) == "second"
+    assert created == list(BROWSER_PROFILES[:2])
+    assert len(waits) == 1
+
+
+def test_new_profile_gets_cookies_except_challenge_state():
+    bandcamp = Bandcamp("identity=test")
+    current = bandcamp._session_for(BROWSER_PROFILES[0])
+    current.cookies.set("client_id", "abc", domain="bandcamp.com")
+    current.cookies.set("_fs_ch_st_abc", "state", domain="bandcamp.com")
+
+    session = bandcamp._session_for(BROWSER_PROFILES[1])
+
+    names = {cookie.name for cookie in session.cookies.jar}
+    assert names == {"identity", "client_id"}

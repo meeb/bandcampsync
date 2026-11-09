@@ -1,12 +1,13 @@
 import json
 import re
-from time import time
+from threading import Lock
+from time import sleep, time
 from http.cookies import SimpleCookie
 from html import unescape as html_unescape
 from urllib.parse import urlsplit, urlunsplit
 from bs4 import BeautifulSoup
 from curl_cffi import requests
-from .config import BROWSER_PROFILES
+from .config import BROWSER_PROFILE_WAIT, BROWSER_PROFILES
 from .download import mask_sig
 from .logger import get_logger
 
@@ -25,6 +26,8 @@ class BandcampDownloadUnavailable(BandcampError):
 class Bandcamp:
     BASE_PROTO = "https"
     BASE_DOMAIN = "bandcamp.com"
+    # Set by the client challenge and specific to the fingerprint that received it
+    CHALLENGE_COOKIE_PREFIX = "_fs_ch_"
     URLS = {
         "index": "/",
         "collection_items": "/api/fancollection/1/collection_items",
@@ -50,9 +53,13 @@ class Bandcamp:
             )
         identity_snip = identity.value[:20]
         log.info(f"Located Bandcamp identity in cookies: {identity_snip}...")
-        # Create a "requests" session and map our SimpleCookie to it
+        # Sessions are kept per browser profile, the current profile is the last one
+        # that received a real response. Sync threads share all of this state.
         self.browser_profile = self.browser_profiles[0]
-        self.session = self._open_session(self.browser_profile)
+        self._sessions = {
+            self.browser_profile: self._open_session(self.browser_profile)
+        }
+        self._sessions_lock = Lock()
 
     def _set_browser_profiles(self, impersonate):
         """
@@ -125,6 +132,22 @@ class Bandcamp:
             session.cookies.set(cookie_name, morsel.value)
         return session
 
+    def _session_for(self, profile):
+        """
+        Returns the session for a browser profile, bringing it up to date with any
+        cookies set during this run on the session for the current profile.
+        """
+        with self._sessions_lock:
+            session = self._sessions.get(profile)
+            if session is None:
+                session = self._open_session(profile)
+                self._sessions[profile] = session
+            if profile != self.browser_profile:
+                for cookie in self._sessions[self.browser_profile].cookies.jar:
+                    if not cookie.name.startswith(self.CHALLENGE_COOKIE_PREFIX):
+                        session.cookies.jar.set_cookie(cookie)
+            return session
+
     @staticmethod
     def _is_client_challenge(response):
         body = response.text or ""
@@ -133,22 +156,18 @@ class Bandcamp:
     def _request(
         self, method, url, data=None, json_data=None, is_json=False, as_raw=False
     ):
-        profiles = (self.browser_profile,) + tuple(
-            profile
-            for profile in self.browser_profiles
-            if profile != self.browser_profile
+        current_profile = self.browser_profile
+        profiles = (current_profile,) + tuple(
+            profile for profile in self.browser_profiles if profile != current_profile
         )
-        response = None
-        for profile in profiles:
-            if profile != self.browser_profile or self.session is None:
-                log.info(f"Switching browser profile to {profile}")
-                self.browser_profile = profile
-                self.session = self._open_session(profile)
+        for attempt, profile in enumerate(profiles):
+            if attempt:
+                sleep(BROWSER_PROFILE_WAIT)
             try:
                 # The debug logs do not mask the URL, which may be a security issue if you run
                 # with level=logging.DEBUG
                 log.debug(f"Making {method} request to {url}")
-                response = self.session.request(
+                response = self._session_for(profile).request(
                     method,
                     url,
                     cookies=self._plain_cookies(),
@@ -161,22 +180,22 @@ class Bandcamp:
                 ) from e
             if self._is_client_challenge(response):
                 log.warning(
-                    "Browser profile "
-                    f"{profile} received Bandcamp's client challenge"
+                    f"Browser profile {profile} received Bandcamp's client challenge"
                 )
-                response = None
                 continue
             if response.status_code != 200:
                 raise BandcampError(
                     f"Failed to make HTTP request to {mask_sig(url)}: "
                     f"unknown status code response: {response.status_code}"
                 )
+            if profile != self.browser_profile:
+                log.info(f"Switching browser profile to {profile}")
+                self.browser_profile = profile
             break
-        if response is None:
+        else:
             raise BandcampError(
-                "Bandcamp returned a browser client challenge instead of the "
-                "requested page. The cookies file loaded, but the request was "
-                "blocked before account data could be read."
+                f"Bandcamp returned a client challenge for {mask_sig(url)} with "
+                f"every browser profile tried: {', '.join(profiles)}"
             )
         if as_raw:
             return response.text
