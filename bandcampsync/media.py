@@ -50,6 +50,9 @@ class LocalMedia:
         for c in normalized_path:
             if c not in disallowed_punctuation:
                 outstr += c
+        # Would otherwise resolve to the current or parent directory
+        if outstr.strip() in ("", ".", ".."):
+            return "_"
         return outstr
 
     @staticmethod
