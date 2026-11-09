@@ -85,9 +85,6 @@ $ pip install bandcampsync
 
 Any modern version of Python3 will be compatible.
 
-Windows and macOS: fixes for temporary files, name handling and timezones are included,
-but support on these platforms is still being tested, so some problems may remain.
-
 Alternatively, there's a batteries included Docker image available if you prefer.
 
 
