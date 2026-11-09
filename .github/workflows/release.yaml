@@ -85,8 +85,7 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            type=pep440,pattern={{version}},value=${{ github.event.release.tag_name }}
-            type=raw,value=latest,enable=${{ !github.event.release.prerelease }}
+            type=raw,value=${{ github.event.release.tag_name }}
         env:
           DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
       - name: Build and push

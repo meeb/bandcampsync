@@ -76,6 +76,10 @@ The Docker image contains the `bandcampsync` Python module as well as a helper
 script that runs the `bandcampsync` on a timer. Configuration variables are also
 moved to environment variables
 
+Each release has a versioned image tagged `ghcr.io/meeb/bandcampsync:vX.Y.Z`, which
+is the best choice for most users. The `latest` tag is built from every push to the
+`main` branch, so it contains unreleased code and may have bugs.
+
 You can pull and run the image with the following commands:
 
 ```bash
