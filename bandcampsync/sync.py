@@ -20,6 +20,7 @@ from .download import (
     is_zip_file,
     DownloadInvalidContentType,
     DownloadBadStatusCode,
+    DownloadCorrupt,
     DownloadExpired,
 )
 
@@ -58,9 +59,12 @@ class Syncer:
         self.checkpoint_has_preorder = False
         self.collection_checkpoint_token = self._load_collection_checkpoint()
         # Items newer than an unreleased preorder are checked again on every run, so
-        # they need the local media index to find any renamed directories
+        # they need the local media index to find any renamed directories. Syncing the
+        # ignore file also needs the index as that's what adds items to it.
         index_local_media = (
-            not self.collection_checkpoint_token or self.checkpoint_has_preorder
+            not self.collection_checkpoint_token
+            or self.checkpoint_has_preorder
+            or self.sync_ignore_file
         )
         if not index_local_media:
             log.info("Collection checkpoint loaded; skipping initial local media index")
@@ -364,7 +368,7 @@ class Syncer:
                         download_content_type = download_file(
                             download_file_url,
                             temp_file,
-                            impersonate=self.bandcamp.impersonate,
+                            impersonate=self.bandcamp.browser_profile,
                         )
                         temp_file.seek(0)
                         temp_file_path = Path(temp_file.name)
@@ -404,8 +408,9 @@ class Syncer:
                             or download_content_type == "application/ogg"
                         ):
                             slug = item.item_title
-                            if item.url_hints and isinstance(item.url_hints, dict):
-                                slug = item.url_hints.get("slug", item.item_title)
+                            url_hints = getattr(item, "url_hints", None)
+                            if url_hints and isinstance(url_hints, dict):
+                                slug = url_hints.get("slug", item.item_title)
                             format_extension = self.local_media.clean_format(
                                 media_format
                             )
@@ -465,6 +470,7 @@ class Syncer:
                     BandcampError,
                     CurlError,
                     DownloadBadStatusCode,
+                    DownloadCorrupt,
                     DownloadInvalidContentType,
                 ) as e:
                     if attempt < self.max_retries - 1:
@@ -483,6 +489,13 @@ class Syncer:
                     self._record_sync_error(
                         f'Download expired and requires email confirmation on Bandcamp for "{item.band_name} / {item.item_title}" '
                         f"(id:{item.item_id}), skipping"
+                    )
+                    return False
+                except OSError as e:
+                    # Not retried, this is a local problem such as a full disk
+                    self._record_sync_error(
+                        f'Failed to save "{item.band_name} / {item.item_title}" '
+                        f"(id:{item.item_id}): {e}. Skipping."
                     )
                     return False
         return False
