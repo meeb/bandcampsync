@@ -132,6 +132,26 @@ class LocalMedia:
             return True
         return False
 
+    def is_path_used_by_other_item(self, item, local_path):
+        """
+        Checks if a different item has already been downloaded to this path, using its
+        ID file or the "band / title" comment for it in the ignore file.
+        """
+        id_file = local_path / self.ITEM_INDEX_FILENAME
+        if id_file.is_file():
+            try:
+                return self.read_item_id(id_file) != item.item_id
+            except ValueError:
+                return False
+        names = (
+            f"{item.band_name} / {item.item_title}",
+            f"{local_path.parent.name} / {local_path.name}",
+        )
+        return any(
+            self.ignores.is_name_used_by_other_item(name, item.item_id)
+            for name in names
+        )
+
     def get_path_for_purchase(self, item):
         return (
             self.media_dir

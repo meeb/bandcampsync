@@ -309,6 +309,19 @@ class Syncer:
 
         local_path = self.local_media.get_path_for_purchase(item)
 
+        # Older purchases aren't loaded when stopping at the checkpoint, so anything
+        # sharing a name with one of them can't be de-duplicated when loading purchases
+        if (
+            self.collection_checkpoint_token
+            and self.local_media.is_path_used_by_other_item(item, local_path)
+        ):
+            log.info(
+                f'"{local_path}" is used by a different item, using a separate folder '
+                f"for (id:{item.item_id})"
+            )
+            item.folder_suffix = f" [{item.item_id}]"
+            local_path = self.local_media.get_path_for_purchase(item)
+
         # Check if any "ignore" pattern matches the band name
         if self.skip_hidden and item.hidden:
             log.info(

@@ -4,12 +4,10 @@ import zlib
 from zipfile import BadZipFile, ZipFile
 from bs4 import BeautifulSoup
 from curl_cffi import requests
-from .config import BROWSER_PROFILES
 from .logger import get_logger
 
 
 log = get_logger("download")
-DEFAULT_IMPERSONATE = BROWSER_PROFILES[0]
 
 
 def mask_sig(url):
@@ -52,13 +50,11 @@ def _is_expired_download_page(html):
     return "display:none" not in style
 
 
-def _fetch_html_body(url, impersonate=None):
+def _fetch_html_body(url, impersonate):
     if not url:
         return ""
     try:
-        resp = requests.get(
-            url, stream=False, impersonate=impersonate or DEFAULT_IMPERSONATE
-        )
+        resp = requests.get(url, stream=False, impersonate=impersonate)
     except requests.exceptions.RequestException as e:
         log.warning(f"Failed to fetch HTML body for: {url} ({e})")
         return ""
@@ -68,7 +64,7 @@ def _fetch_html_body(url, impersonate=None):
         resp.close()
 
 
-def _read_html_body(response, impersonate=None):
+def _read_html_body(response, impersonate):
     html_body = ""
     try:
         html_body = response.text or ""
@@ -89,11 +85,11 @@ def _read_html_body(response, impersonate=None):
 def download_file(
     url,
     target,
+    impersonate,
     mode="wb",
     chunk_size=8192,
     logevery=10,
     disallow_content_type="text/html",
-    impersonate=None,
 ):
     """
     Attempts to stream a download to an open target file handle in chunks. If the
@@ -103,7 +99,7 @@ def download_file(
     text = True if "t" in mode else False
     data_streamed = 0
     last_log = 0
-    r = requests.get(url, stream=True, impersonate=impersonate or DEFAULT_IMPERSONATE)
+    r = requests.get(url, stream=True, impersonate=impersonate)
     try:
         # r.raise_for_status()
         if r.status_code != 200:

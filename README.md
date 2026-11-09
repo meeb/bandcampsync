@@ -25,8 +25,18 @@ checkpoint file at the root of your media directory:
 
 On the next run, purchase pagination stops as soon as this checkpoint is reached,
 so only new purchases are fetched. The checkpoint stays behind any unreleased
-pre-orders so they are downloaded once they are released. To scan your full collection
-again, for example to find pre-orders missed by older versions, delete this file.
+pre-orders so they are downloaded once they are released.
+
+Purchases older than the checkpoint are not checked again. Delete this file to make the
+next run scan your full collection, which you will need to do to:
+
+* Download pre-orders that were missed by older versions
+* Download an item again after deleting its `bandcamp_item_id.txt` file or removing it
+  from your ignore file
+* Download an item that was skipped by `--skip-hidden` or an ignore pattern, after
+  unhiding it or removing the pattern
+
+Items you already have will not be downloaded again by a full scan.
 
 The media directory will have the following format:
 
@@ -39,14 +49,16 @@ The media directory will have the following format:
 /media/Artist Name/Album Name/Track Name.flac
 ```
 
-The directory format of `artist_name`/`item_title` is not editable.
+The directory format of `artist_name`/`item_title` is not editable. If you have
+multiple purchases with the same artist and title they are kept separate by adding the
+item ID to the directory name, for example `Album Name [123456]`.
 
 `bandcamp_item_id.txt` is a special file created in each item directory and
 it contains the Bandcamp item ID as an integer. This file is used by BandcampSync
 to track which media items have already been downloaded, when an ignore file is
 not being used. You can rename the artist or album directories, but do not delete
 the `bandcamp_item_id.txt` file or the media item will be re-downloaded the next
-time `bandcampsync` is run.
+time your full collection is scanned.
 
 The `bandcamp_item_id.txt` file method of tracking what items are synchronised
 also means you can also use media managers such as Lidarr to rename artist,
@@ -254,7 +266,8 @@ read the bandcamp_item_id.txt files. This option requires that you pass a path t
 ignore file with `-I / --ignore-file`.
 
 When `--skip-hidden` is passed, any items in your Bandcamp collection that have the hidden
-flag set will be skipped during sync.
+flag set will be skipped during sync. If you unhide an item later you will need to delete
+the checkpoint file to download it.
 
 When `--impersonate` is passed, the named `curl_cffi` browser (e.g. `chrome146`) is used
 for all requests instead of the default browser profiles and their automatic fallback.

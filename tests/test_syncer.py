@@ -367,7 +367,7 @@ def _collection_item(item_id, token, **extra):
     }
 
 
-def _run_collection_sync(tmp_path, items, downloadable):
+def _run_collection_sync(tmp_path, items, downloadable, **options):
     """Runs a real Syncer and Bandcamp, returning the IDs of the items downloaded."""
     pages = [
         {
@@ -402,7 +402,7 @@ def _run_collection_sync(tmp_path, items, downloadable):
         patch("bandcampsync.sync.download_file", return_value="audio/flac"),
     ):
         syncer = Syncer(
-            BandcampSyncOptions(cookies="identity=test", dir_path=tmp_path),
+            BandcampSyncOptions(cookies="identity=test", dir_path=tmp_path, **options),
             auto_run=False,
         )
         asyncio.run(syncer.sync_items())
@@ -456,3 +456,75 @@ def test_sync_ignore_file_indexes_local_media_with_checkpoint(mock_bandcamp, tmp
 
     assert syncer.collection_checkpoint_token == "checkpoint-token"
     assert "5  # Band / Album" in ignore_file.read_text()
+
+
+def _same_name_item(item_id, token):
+    item = _collection_item(item_id, token)
+    item["item_title"] = "Same Title"
+    item["url_hints"] = {"slug": "same-slug"}
+    return item
+
+
+def test_new_purchase_with_old_name_is_downloaded_using_id_files(tmp_path):
+    old = _same_name_item(1, "old")
+    new = _same_name_item(2, "new")
+    assert _run_collection_sync(tmp_path, [dict(old)], [1]) == [1]
+
+    assert _run_collection_sync(tmp_path, [dict(new), dict(old)], [1, 2]) == [2]
+
+    band_dir = tmp_path / "Band"
+    assert (band_dir / "Same Title" / "bandcamp_item_id.txt").read_text() == "1\n"
+    assert (band_dir / "Same Title [2]" / "bandcamp_item_id.txt").read_text() == "2\n"
+    # Neither is downloaded again, even when the checkpoint doesn't advance
+    (tmp_path / Syncer.STATE_FILENAME).write_text(
+        json.dumps({"last_seen_token": "old"})
+    )
+    assert _run_collection_sync(tmp_path, [dict(new), dict(old)], [1, 2]) == []
+
+
+def test_new_purchase_with_old_name_is_downloaded_using_ignore_file(tmp_path):
+    ignore_file = tmp_path / "ignores.txt"
+    ignore_file.write_text("# Ignored items\n")
+    old = _same_name_item(1, "old")
+    new = _same_name_item(2, "new")
+    options = {"ign_file_path": ignore_file}
+    assert _run_collection_sync(tmp_path, [dict(old)], [1], **options) == [1]
+
+    assert _run_collection_sync(
+        tmp_path, [dict(new), dict(old)], [1, 2], **options
+    ) == [2]
+
+    band_dir = tmp_path / "Band"
+    assert (band_dir / "Same Title" / "same-slug.flac").exists()
+    assert (band_dir / "Same Title [2]" / "same-slug.flac").exists()
+
+
+def test_failed_item_is_retried_in_the_same_folder(tmp_path):
+    """Files left by a failed download aren't mistaken for a different item."""
+    ignore_file = tmp_path / "ignores.txt"
+    ignore_file.write_text("# Ignored items\n")
+    (tmp_path / Syncer.STATE_FILENAME).write_text(
+        json.dumps({"last_seen_token": "old"})
+    )
+    partial = tmp_path / "Band" / "Same Title"
+    partial.mkdir(parents=True)
+    (partial / "track1.flac").write_text("partial")
+    new = _same_name_item(2, "new")
+    old = _same_name_item(1, "old")
+
+    _run_collection_sync(
+        tmp_path, [dict(new), dict(old)], [1, 2], ign_file_path=ignore_file
+    )
+
+    assert (partial / "same-slug.flac").exists()
+    assert not (tmp_path / "Band" / "Same Title [2]").exists()
+
+
+def test_same_name_without_checkpoint_keeps_existing_skip(tmp_path):
+    """Without a checkpoint both items are loaded, so a mismatch isn't a new purchase."""
+    album = tmp_path / "Band" / "Same Title"
+    album.mkdir(parents=True)
+    (album / "bandcamp_item_id.txt").write_text("1\n")
+
+    assert _run_collection_sync(tmp_path, [_same_name_item(2, "new")], [2]) == []
+    assert not (tmp_path / "Band" / "Same Title [2]").exists()

@@ -1,11 +1,11 @@
+import importlib.util
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
 import pytest
 
-from bandcampsync.config import BROWSER_PROFILES
+import bandcampsync.download
 from bandcampsync.download import (
-    DEFAULT_IMPERSONATE,
     DownloadCorrupt,
     _is_expired_download_page,
     is_zip_file,
@@ -59,5 +59,11 @@ def test_unzip_valid_file(tmp_path):
     assert (tmp_path / "out" / "track.flac").read_text() == "data"
 
 
-def test_default_profile_is_a_configured_profile():
-    assert DEFAULT_IMPERSONATE == BROWSER_PROFILES[0]
+def test_module_imports_with_no_configured_profiles(monkeypatch):
+    monkeypatch.setattr("bandcampsync.config.BROWSER_PROFILES", ())
+    # A separate copy of the module, so reloading doesn't replace the exception classes
+    spec = importlib.util.spec_from_file_location(
+        "bandcampsync._download_copy", bandcampsync.download.__file__
+    )
+
+    spec.loader.exec_module(importlib.util.module_from_spec(spec))

@@ -31,6 +31,8 @@ class Ignores:
         # Items can be added from multiple threads when syncing concurrently
         self.ign_lock = Lock()
         self.ids = set()
+        # Item IDs for each "band / title" comment in the "ignores" file
+        self.names = {}
         self.parse_ignores()
 
     def parse_ignores(self):
@@ -80,17 +82,20 @@ class Ignores:
 
         # We keep the original lines in self.ign_lines as base to add content,
         # but we process the parsed content into the "lines" variable.
-        lines = [
-            line.split("#")[0].strip() for line in self.ign_lines
-        ]  # Strip comments
-        lines = [line for line in lines if line]  # Remove empty lines
-        for line in lines:
+        for ign_line in self.ign_lines:
+            line, _, comment = ign_line.partition("#")  # Strip comments
+            line = line.strip()
+            if not line:  # Skip empty lines
+                continue
             try:
-                self.ids.add(int(line))
+                item_id = int(line)
             except Exception as e:
                 raise ValueError(
                     f'Failed to cast item ID from {self.ign_file_path} "{line}" as an int: {e}'
                 )
+            self.ids.add(item_id)
+            if comment.strip():
+                self.names.setdefault(comment.strip(), set()).add(item_id)
 
     def add(self, item):
         """Adds a new item to the "ignores" file in the auto-managed section"""
@@ -99,6 +104,9 @@ class Ignores:
             return
 
         with self.ign_lock:
+            self.names.setdefault(f"{item.band_name} / {item.item_title}", set()).add(
+                item.item_id
+            )
             # We recreate the content of the file from the initial read.
             # Note that any manual change made to the "ignores" file while the process is running
             # will be lost because we only read the content at startup time.
@@ -127,6 +135,9 @@ class Ignores:
                 )
                 if os.path.exists(tmp_ignores_file):
                     os.remove(tmp_ignores_file)
+
+    def is_name_used_by_other_item(self, name, item_id):
+        return bool(self.names.get(name, set()) - {item_id})
 
     def is_ignored(self, item):
         # Check if the id is ignored

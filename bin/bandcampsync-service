@@ -38,6 +38,8 @@ class CatchShutdownSignal:
 
     def got_exit_signal(self, *args, **kwargs):
         self.shutdown = True
+        # Signal handlers resume whatever was interrupted, this stops it instead
+        raise KeyboardInterrupt
 
 
 if __name__ == "__main__":
@@ -174,5 +176,5 @@ if __name__ == "__main__":
             log.info(f"Sleeping for {next_sleep} seconds")
             sleep(next_sleep)
     except KeyboardInterrupt:
-        log.error("Caught keyboard interrupt, stopping")
+        log.info("Caught shutdown signal, stopping")
     log.info("Done")
