@@ -372,6 +372,7 @@ class Bandcamp:
             if not items:
                 log.info("Reached end of items")
                 break
+            previous_token = token
             try:
                 redownload_urls = data["redownload_urls"]
             except KeyError:
@@ -415,6 +416,12 @@ class Bandcamp:
             if stop_loading:
                 log.info("Stopping purchase pagination early due to stop condition")
                 break
+            if token == previous_token:
+                log.warning(
+                    "Stopping purchase pagination, the collection page did not "
+                    "provide a token for the next page"
+                )
+                break
 
         # De-duplicate multiple purchases sharing the same artist and title.
         self._deduplicate_purchases(items_by_title_key)
@@ -447,6 +454,10 @@ class Bandcamp:
                     raise BandcampDownloadUnavailable(
                         f"No downloads listed for {item.band_name} / {item.item_title}"
                     ) from e
+                if downloads is None:
+                    raise BandcampDownloadUnavailable(
+                        f"No downloads listed for {item.band_name} / {item.item_title}"
+                    )
                 try:
                     download_format = downloads[encoding]
                 except KeyError as e:

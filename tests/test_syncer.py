@@ -2,7 +2,7 @@
 
 import json
 import asyncio
-from datetime import datetime
+from datetime import date, datetime
 from unittest.mock import Mock, patch
 import pytest
 from bandcampsync.bandcamp import Bandcamp
@@ -552,3 +552,18 @@ def test_item_with_name_too_long_for_filesystem_is_downloaded_once(tmp_path):
         _run_collection_sync(tmp_path, [dict(long_item), dict(normal_item)], [1, 2])
         == []
     )
+
+
+def test_until_date_keeps_new_purchase_with_old_name_separate(tmp_path):
+    old = _same_name_item(1, "old")
+    old["purchased"] = "01 Jan 2020 00:00:00 GMT"
+    new = _same_name_item(2, "new")
+    assert _run_collection_sync(tmp_path, [dict(old)], [1]) == [1]
+    (tmp_path / Syncer.STATE_FILENAME).unlink()
+
+    downloaded = _run_collection_sync(
+        tmp_path, [dict(new), dict(old)], [1, 2], until_date=date(2025, 1, 1)
+    )
+
+    assert downloaded == [2]
+    assert (tmp_path / "Band" / "Same Title [2]" / "bandcamp_item_id.txt").exists()

@@ -185,6 +185,21 @@ have been downloaded already, same as the `--skip-item-index` CLI argument.
 `SYNC_IGNORE_FILE` can be set to true to add already downloaded items found in
 the filesystem to the ignore file, same as the `--sync-ignore-file` CLI argument.
 
+`SKIP_HIDDEN` can be set to true to skip items that have the hidden flag set, same as
+the `--skip-hidden` CLI argument.
+
+`FORMAT` can be set to the media format to download, defaults to `flac`, same as the
+`--format` CLI argument.
+
+`COOKIES_FILE`, `IGNORES_FILE` and `DIRECTORY` can be set to change where the cookies
+file, ignore file and downloads are stored in the container. They default to
+`/config/cookies.txt`, `/config/ignores.txt` and `/downloads`.
+
+`EXIT_AFTER_RUN` can be set to `1` to exit after one synchronisation rather than running
+daily. If that synchronisation fails the container exits with an error code. Without
+this, a failed synchronisation is logged and tried again at the next scheduled run, so
+check your logs if nothing seems to be downloading, for example if your cookies expire.
+
 
 ## Configuration
 

@@ -12,6 +12,10 @@ DELIMITER_REGEX = re.compile(r"^#\s*={10,}\s*$")
 log = get_logger("ignores")
 
 
+def _comment_for_name(name):
+    return re.sub(r"[\r\n]+", " ", name).strip()
+
+
 class Ignores:
     """Manages configuration for items that shouldn't be downloaded."""
 
@@ -103,10 +107,9 @@ class Ignores:
         if not self.ign_file_path:
             return
 
+        comment = _comment_for_name(f"{item.band_name} / {item.item_title}")
         with self.ign_lock:
-            self.names.setdefault(f"{item.band_name} / {item.item_title}", set()).add(
-                item.item_id
-            )
+            self.names.setdefault(comment, set()).add(item.item_id)
             # We recreate the content of the file from the initial read.
             # Note that any manual change made to the "ignores" file while the process is running
             # will be lost because we only read the content at startup time.
@@ -115,7 +118,7 @@ class Ignores:
                 +
                 # The human-readable comment is ignored by the script
                 # but can be useful to identify something that needs a redownload
-                [f"{item.item_id}  # {item.band_name} / {item.item_title}\n"]
+                [f"{item.item_id}  # {comment}\n"]
                 + self.ign_lines[self.ign_insert_index :]
             )
             # The list of ids is in reverse chronological order, like the collection is.
@@ -137,7 +140,7 @@ class Ignores:
                     os.remove(tmp_ignores_file)
 
     def is_name_used_by_other_item(self, name, item_id):
-        return bool(self.names.get(name, set()) - {item_id})
+        return bool(self.names.get(_comment_for_name(name), set()) - {item_id})
 
     def is_ignored(self, item):
         # Check if the id is ignored

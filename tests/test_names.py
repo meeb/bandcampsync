@@ -1,5 +1,7 @@
 """Tests for fitting names to the filesystem, using real directories."""
 
+import os
+
 import pytest
 
 from bandcampsync.names import fit_name, is_usable_name
@@ -15,7 +17,19 @@ def test_usable_names_are_never_changed(tmp_path, name):
 
 
 @pytest.mark.parametrize(
-    "name", ["a" * 256, LONG_NAME, ZALGO_NAME, "a\x00b", "a\ud800b"]
+    "name",
+    [
+        "a" * 256,
+        LONG_NAME,
+        ZALGO_NAME,
+        "a\x00b",
+        pytest.param(
+            "a\ud800b",
+            marks=pytest.mark.skipif(
+                os.name == "nt", reason="Windows allows lone surrogates in names"
+            ),
+        ),
+    ],
 )
 def test_unusable_names_can_be_created_after_fitting(tmp_path, name):
     assert is_usable_name(tmp_path, name) is False

@@ -641,3 +641,33 @@ def test_failed_directory_is_not_downloaded_again(syncer, mock_bandcamp, tmp_pat
 
     assert mock_download.call_count == 1
     assert len(syncer.sync_errors) == 1
+
+
+def test_unexpected_error_skips_only_that_item(syncer, mock_bandcamp, tmp_path):
+    failing = _download_item(mock_bandcamp)
+    working = _download_item(mock_bandcamp)
+    working.item_id = 2
+    working.item_title = "Second Album"
+    mock_bandcamp.purchases = [failing, working]
+    mock_bandcamp.get_download_file_url.side_effect = [
+        TypeError("not subscriptable"),
+        "http://example.com/file",
+    ]
+
+    with patch("bandcampsync.sync.download_file", side_effect=_write_zip):
+        asyncio.run(syncer.sync_items())
+
+    assert len(syncer.sync_errors) == 1
+    assert "TypeError: not subscriptable" in syncer.sync_errors[0]
+    assert (tmp_path / "Artist" / "Second Album" / "track1.flac").exists()
+    assert not syncer.state_file_path.exists()
+
+
+def test_keyboard_interrupt_is_not_treated_as_an_item_error(syncer, mock_bandcamp):
+    item = _download_item(mock_bandcamp)
+    mock_bandcamp.get_download_file_url.side_effect = KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        syncer.sync_item(item)
+
+    assert syncer.sync_errors == []

@@ -298,3 +298,42 @@ def test_missing_page_data_error_is_a_readable_message():
         "Failed to extract page data, check your cookies are from an "
         "authenticated session"
     )
+
+
+def test_null_downloads_is_unavailable(bandcamp):
+    item = BandcampItem(
+        {
+            "item_id": 1,
+            "band_name": "Band",
+            "item_title": "Album",
+            "download_url": "url",
+        }
+    )
+    blob = escape(json.dumps({"digital_items": [{"item_id": 1, "downloads": None}]}))
+    soup = BeautifulSoup(f'<div id="pagedata" data-blob="{blob}"></div>', "html.parser")
+    bandcamp._request = Mock(return_value=soup)
+
+    with pytest.raises(BandcampDownloadUnavailable):
+        bandcamp.get_download_file_url(item)
+
+
+def test_pagination_stops_when_the_token_does_not_change():
+    bandcamp = _create_bandcamp()
+    page = {
+        "items": [
+            {
+                "item_id": 1,
+                "band_name": "Band",
+                "item_title": "Album",
+                "sale_item_type": "a",
+                "sale_item_id": 1,
+            }
+        ],
+        "redownload_urls": {"a1": "https://bandcamp.test/1"},
+    }
+    bandcamp._request = Mock(return_value=page)
+
+    assert bandcamp.load_purchases() is True
+
+    assert bandcamp._request.call_count == 1
+    assert len(bandcamp.purchases) == 1

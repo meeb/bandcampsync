@@ -80,35 +80,53 @@ class LocalMedia:
         format_prefix = format_parts[0]
         return format_prefix if format_prefix else format_str
 
+    @staticmethod
+    def _directories_in(path, required=False):
+        """
+        Lists directories, skipping any that can't be read such as lost+found or
+        $RECYCLE.BIN at the root of a volume. With required set an unreadable path raises
+        an error, as otherwise everything in it would look like it needs downloading.
+        """
+        try:
+            children = list(path.iterdir())
+        except OSError as e:
+            if required:
+                raise
+            log.warning(f"Skipping unreadable directory {path}: {e}")
+            return []
+        directories = []
+        for child in children:
+            try:
+                if child.is_dir():
+                    directories.append(child)
+            except OSError as e:
+                log.warning(f"Skipping unreadable directory {child}: {e}")
+        return directories
+
     def index(self):
-        for child1 in self.media_dir.iterdir():
-            if child1.is_dir():
-                for child2 in child1.iterdir():
-                    if child2.is_dir():
-                        for child3 in child2.iterdir():
-                            if child3.name == self.ITEM_INDEX_FILENAME:
-                                self.item_names.add((child2.parent.name, child2.name))
-                                try:
-                                    item_id = self.read_item_id(child3)
-                                except ValueError as e:
-                                    log.warning(
-                                        f"Skipping invalid item index file {child3}: {e}"
-                                    )
-                                    continue
-                                if self.sync_ignore_file:
-                                    item = BandcampItem(
-                                        {
-                                            "item_id": item_id,
-                                            "band_name": child2.parent.name,
-                                            "item_title": child2.name,
-                                        }
-                                    )
-                                    if not self.ignores.is_ignored(item):
-                                        self.ignores.add(item)
-                                self.media[item_id] = child2
-                                log.info(
-                                    f"Detected locally downloaded media: {item_id} = {child2}"
-                                )
+        for band_dir in self._directories_in(self.media_dir, required=True):
+            for item_dir in self._directories_in(band_dir):
+                id_file = item_dir / self.ITEM_INDEX_FILENAME
+                try:
+                    if not id_file.is_file():
+                        continue
+                    self.item_names.add((band_dir.name, item_dir.name))
+                    item_id = self.read_item_id(id_file)
+                except (OSError, ValueError) as e:
+                    log.warning(f"Skipping invalid item index file {id_file}: {e}")
+                    continue
+                if self.sync_ignore_file:
+                    item = BandcampItem(
+                        {
+                            "item_id": item_id,
+                            "band_name": band_dir.name,
+                            "item_title": item_dir.name,
+                        }
+                    )
+                    if not self.ignores.is_ignored(item):
+                        self.ignores.add(item)
+                self.media[item_id] = item_dir
+                log.info(f"Detected locally downloaded media: {item_id} = {item_dir}")
         return True
 
     @staticmethod

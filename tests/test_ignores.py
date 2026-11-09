@@ -4,6 +4,8 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 from unittest.mock import Mock
 
+import pytest
+
 from bandcampsync.ignores import Ignores
 
 
@@ -79,3 +81,19 @@ def test_names_are_read_as_utf8(tmp_path):
 
     assert ignores.ids == {1}
     assert ignores.is_name_used_by_other_item("Band / \u28ce\u0338 Album", 2) is True
+
+
+@pytest.mark.parametrize(
+    "title", ["Line one\nLine two", "Line one\r\nLine two", "One\rTwo"]
+)
+def test_line_breaks_in_names_do_not_break_the_file(tmp_path, title):
+    ignore_file = tmp_path / "ignores.txt"
+    ignore_file.write_text("# Ignored items\n")
+    ignores = Ignores(ign_file_path=ignore_file, ign_patterns="")
+    item = Mock(item_id=1, band_name="Band", item_title=title)
+
+    ignores.add(item)
+    reloaded = Ignores(ign_file_path=ignore_file, ign_patterns="")
+
+    assert reloaded.ids == {1}
+    assert reloaded.is_name_used_by_other_item(f"Band / {title}", 2) is True

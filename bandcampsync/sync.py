@@ -308,12 +308,13 @@ class Syncer:
         """
         try:
             return self._sync_item(item, encoding)
-        except OSError as e:
+        except Exception as e:
             # Not retried, this is a local problem such as a full disk or a name that
-            # can't be used on this filesystem, and only skips this item
+            # can't be used on this filesystem, or something unexpected from Bandcamp.
+            # It only skips this item and the error stops the checkpoint advancing.
             self._record_sync_error(
                 f'Failed to save "{item.band_name} / {item.item_title}" '
-                f"(id:{item.item_id}): {e}. Skipping."
+                f"(id:{item.item_id}): {type(e).__name__}: {e}. Skipping."
             )
             return False
 
@@ -322,12 +323,11 @@ class Syncer:
 
         local_path = self.local_media.get_path_for_purchase(item)
 
-        # Older purchases aren't loaded when stopping at the checkpoint, so anything
-        # sharing a name with one of them can't be de-duplicated when loading purchases
+        # Older purchases aren't loaded when stopping at the checkpoint or a date, so
+        # anything sharing a name with one can't be de-duplicated when loading purchases
         if (
-            self.collection_checkpoint_token
-            and self.local_media.is_path_used_by_other_item(item, local_path)
-        ):
+            self.collection_checkpoint_token or self.until_date
+        ) and self.local_media.is_path_used_by_other_item(item, local_path):
             log.info(
                 f'"{local_path}" is used by a different item, using a separate folder '
                 f"for (id:{item.item_id})"

@@ -1,3 +1,4 @@
+import os
 from unittest.mock import Mock, patch
 
 import pytest
@@ -123,7 +124,7 @@ def test_clean_path_never_leaves_the_media_directory(name):
     [("...", "..."), ("Band. Name", "Band. Name"), ("..Band", "..Band"), ("a/b", "ab")],
 )
 def test_clean_path_keeps_usable_names(name, expected):
-    assert LocalMedia._clean_path(name) == expected
+    assert LocalMedia._clean_path(name, windows=False) == expected
 
 
 def test_path_for_purchase_stays_inside_media_directory(tmp_path):
@@ -183,3 +184,52 @@ def test_folder_suffix_keeps_long_names_separate(tmp_path):
     )
 
     assert first != second
+
+
+@pytest.mark.skipif(
+    os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0),
+    reason="Requires permissions to be enforced",
+)
+def test_index_skips_unreadable_directories(tmp_path):
+    locked = tmp_path / "lost+found"
+    locked.mkdir()
+    locked_album = tmp_path / "Band" / "Locked"
+    locked_album.mkdir(parents=True)
+    album = tmp_path / "Band" / "Album"
+    album.mkdir()
+    (album / LocalMedia.ITEM_INDEX_FILENAME).write_text("5\n")
+    locked.chmod(0)
+    locked_album.chmod(0)
+    try:
+        local_media = _create_local_media(tmp_path)
+    finally:
+        locked.chmod(0o700)
+        locked_album.chmod(0o700)
+
+    assert local_media.media == {5: album}
+
+
+@pytest.mark.skipif(
+    os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0),
+    reason="Requires permissions to be enforced",
+)
+def test_index_raises_if_media_directory_is_unreadable(tmp_path):
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    media_dir.chmod(0)
+    try:
+        with pytest.raises(PermissionError):
+            _create_local_media(media_dir)
+    finally:
+        media_dir.chmod(0o700)
+
+
+def test_index_continues_after_id_file_error(tmp_path):
+    bad = tmp_path / "Band" / "Bad"
+    bad.mkdir(parents=True)
+    (bad / LocalMedia.ITEM_INDEX_FILENAME).write_bytes(b"\xff\xfe")
+    good = tmp_path / "Band" / "Good"
+    good.mkdir()
+    (good / LocalMedia.ITEM_INDEX_FILENAME).write_text("5\n")
+
+    assert _create_local_media(tmp_path).media == {5: good}
