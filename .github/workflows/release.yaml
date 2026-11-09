@@ -44,13 +44,18 @@ jobs:
           persist-credentials: false
       - name: Set up uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-      - name: Check the release tag matches the package version
+      - name: Check the release tag matches the package versions
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           package_version="$(uv version --short)"
           if [ "${RELEASE_TAG#v}" != "${package_version}" ]; then
             echo "Release tag ${RELEASE_TAG} does not match package version ${package_version}"
+            exit 1
+          fi
+          config_version="$(sed -n 's/^VERSION = "\(.*\)"$/\1/p' bandcampsync/config.py)"
+          if [ "${config_version}" != "${package_version}" ]; then
+            echo "bandcampsync/config.py version ${config_version} does not match package version ${package_version}"
             exit 1
           fi
       - name: Build

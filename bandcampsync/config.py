@@ -1,4 +1,4 @@
-VERSION = "0.8.0"
+VERSION = "0.9.0"
 INTERNAL_USER_AGENT = f"bandcampsync/{VERSION}"
 # Bandcamp's Fastly client challenge rejects some curl_cffi fingerprints, including
 # the "chrome" alias and "chrome150", returning a small "Client Challenge" page with
