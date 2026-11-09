@@ -45,7 +45,11 @@ class Ignores:
             log.warning(
                 f"Ignore file {self.ign_file_path} not found. Creating a blank one"
             )
-            shutil.copyfile(TEMPLATE_IGNORES_FILE, self.ign_file_path)
+            if os.path.exists(TEMPLATE_IGNORES_FILE):
+                shutil.copyfile(TEMPLATE_IGNORES_FILE, self.ign_file_path)
+            else:
+                # The template is only available in the Docker image
+                open(self.ign_file_path, "w").close()
 
         with open(self.ign_file_path, "rt") as f:
             try:
