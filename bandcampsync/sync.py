@@ -22,6 +22,7 @@ from .download import (
     DownloadInvalidContentType,
     DownloadBadStatusCode,
     DownloadCorrupt,
+    DownloadEmpty,
     DownloadExpired,
     DownloadUnexpectedLayout,
 )
@@ -495,6 +496,7 @@ class Syncer:
                     CurlError,
                     DownloadBadStatusCode,
                     DownloadCorrupt,
+                    DownloadEmpty,
                     DownloadInvalidContentType,
                 ) as e:
                     if attempt < self.max_retries - 1:

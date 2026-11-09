@@ -11,6 +11,7 @@ from curl_cffi import CurlError, requests
 from bandcampsync.sync import Syncer
 from bandcampsync.options import BandcampSyncOptions
 from bandcampsync.bandcamp import BandcampDownloadUnavailable, BandcampError
+from bandcampsync.download import DownloadEmpty
 
 
 @pytest.fixture
@@ -691,3 +692,48 @@ def test_zip_containing_directory_is_skipped_without_retrying(
     assert mock_download.call_count == 1
     assert "contains a directory" in syncer.sync_errors[0]
     assert not (tmp_path / "Artist" / "Album").exists()
+
+
+def _track_item(mock_bandcamp):
+    item = _download_item(mock_bandcamp)
+    item.item_type = "track"
+    return item
+
+
+def test_empty_download_is_retried(syncer, mock_bandcamp, tmp_path):
+    item = _track_item(mock_bandcamp)
+
+    def empty_then_audio(url, target, **kwargs):
+        if mock_download.call_count == 1:
+            raise DownloadEmpty("Download was empty")
+        target.write(b"audio")
+        return "audio/flac"
+
+    with (
+        patch(
+            "bandcampsync.sync.download_file", side_effect=empty_then_audio
+        ) as mock_download,
+        patch("bandcampsync.sync.time.sleep"),
+    ):
+        assert syncer.sync_item(item) is True
+
+    assert (tmp_path / "Artist" / "Album" / "album.flac").read_bytes() == b"audio"
+    assert syncer.had_sync_errors is False
+
+
+def test_empty_download_is_never_marked_as_downloaded(syncer, mock_bandcamp, tmp_path):
+    item = _track_item(mock_bandcamp)
+    with (
+        patch(
+            "bandcampsync.sync.download_file",
+            side_effect=DownloadEmpty("Download was empty"),
+        ) as mock_download,
+        patch("bandcampsync.sync.time.sleep"),
+    ):
+        assert syncer.sync_item(item) is False
+
+    assert mock_download.call_count == syncer.max_retries
+    assert "Download was empty" in syncer.sync_errors[0]
+    assert syncer.new_items_downloaded is False
+    assert not (tmp_path / "Artist" / "Album").exists()
+    assert not syncer.state_file_path.exists()

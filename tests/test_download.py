@@ -9,10 +9,12 @@ from curl_cffi import requests
 import bandcampsync.download
 from bandcampsync.download import (
     DownloadCorrupt,
+    DownloadEmpty,
     DownloadUnexpectedLayout,
     _fetch_html_body,
     _is_expired_download_page,
     _read_html_body,
+    download_file,
     is_zip_file,
     mask_sig,
     temporary_download_path,
@@ -188,3 +190,33 @@ def test_temporary_download_path_is_removed_after_an_error(tmp_path):
             raise ValueError("failed")
 
     assert not path.exists()
+
+
+def _download_response(chunks):
+    return Mock(
+        status_code=200,
+        headers={"Content-Type": "audio/flac"},
+        iter_content=Mock(return_value=chunks),
+    )
+
+
+def test_empty_download_raises(tmp_path):
+    with open(tmp_path / "download", "wb") as target:
+        with patch(
+            "bandcampsync.download.requests.get", return_value=_download_response([])
+        ):
+            with pytest.raises(DownloadEmpty):
+                download_file("https://bandcamp.test/", target, "firefox155")
+
+
+def test_download_with_data_returns_content_type(tmp_path):
+    path = tmp_path / "download"
+    with open(path, "wb") as target:
+        with patch(
+            "bandcampsync.download.requests.get",
+            return_value=_download_response([b"audio"]),
+        ):
+            result = download_file("https://bandcamp.test/", target, "firefox155")
+
+    assert result == "audio/flac"
+    assert path.read_bytes() == b"audio"

@@ -36,6 +36,10 @@ class DownloadCorrupt(ValueError):
     pass
 
 
+class DownloadEmpty(ValueError):
+    pass
+
+
 class DownloadUnexpectedLayout(ValueError):
     pass
 
@@ -139,6 +143,8 @@ def download_file(
                     last_log = percent_complete
     finally:
         r.close()
+    if data_streamed == 0:
+        raise DownloadEmpty("Download was empty")
     return major_content_type
 
 
