@@ -1,6 +1,9 @@
 """Tests for Syncer's sync_item functionality and retry logic."""
 
+import shutil
+from pathlib import Path
 from unittest.mock import Mock, patch
+from zipfile import ZipFile
 import pytest
 from bandcampsync.sync import Syncer
 from bandcampsync.options import BandcampSyncOptions
@@ -328,3 +331,90 @@ def test_sync_item_dry_run_no_side_effects(mock_bandcamp, tmp_path):
     assert result is False
     assert syncer.new_items_downloaded is False
     assert not mock_download.called
+
+
+def _download_item(mock_bandcamp):
+    mock_bandcamp.get_download_file_url.return_value = "http://example.com/file"
+    mock_bandcamp.check_download_stat.return_value = "http://example.com/file_ok"
+    return Mock(
+        is_preorder=False,
+        hidden=False,
+        band_name="Artist",
+        item_title="Album",
+        item_id=1,
+        item_type="album",
+        url_hints={"slug": "album"},
+        folder_suffix="",
+        download_url="http://example.com/download",
+    )
+
+
+def _write_zip(url, target, **kwargs):
+    with ZipFile(target, "w") as archive:
+        archive.writestr("track1.flac", "one")
+        archive.writestr("track2.flac", "two")
+    target.flush()
+    return "application/zip"
+
+
+def _assert_not_marked_as_downloaded(syncer, mock_add, album_dir):
+    assert syncer.new_items_downloaded is False
+    assert syncer.had_sync_errors is True
+    mock_add.assert_not_called()
+    assert not (album_dir / "bandcamp_item_id.txt").exists()
+
+
+@pytest.mark.parametrize("use_ignore_file", [True, False])
+def test_failed_move_does_not_mark_item_downloaded(
+    syncer, mock_bandcamp, tmp_path, use_ignore_file
+):
+    item = _download_item(mock_bandcamp)
+    syncer.ign_file_path = tmp_path / "ignores.txt" if use_ignore_file else None
+    with (
+        patch("bandcampsync.sync.download_file", side_effect=_write_zip),
+        patch("bandcampsync.sync.move_file", side_effect=OSError("disk full")) as move,
+        patch.object(syncer.ignores, "add") as mock_add,
+    ):
+        result = syncer.sync_item(item)
+
+    assert result is False
+    assert move.call_count == 1
+    _assert_not_marked_as_downloaded(syncer, mock_add, tmp_path / "Artist" / "Album")
+
+
+@pytest.mark.parametrize("use_ignore_file", [True, False])
+def test_failed_copy_does_not_mark_item_downloaded(
+    syncer, mock_bandcamp, tmp_path, use_ignore_file
+):
+    item = _download_item(mock_bandcamp)
+    item.item_type = "track"
+    syncer.ign_file_path = tmp_path / "ignores.txt" if use_ignore_file else None
+    with (
+        patch("bandcampsync.sync.download_file", return_value="audio/flac"),
+        patch("bandcampsync.sync.copy_file", side_effect=OSError("disk full")),
+        patch.object(syncer.ignores, "add") as mock_add,
+    ):
+        result = syncer.sync_item(item)
+
+    assert result is False
+    _assert_not_marked_as_downloaded(syncer, mock_add, tmp_path / "Artist" / "Album")
+
+
+def test_item_is_downloaded_again_after_failed_move(syncer, mock_bandcamp, tmp_path):
+    item = _download_item(mock_bandcamp)
+    album_dir = tmp_path / "Artist" / "Album"
+    real_move = shutil.move
+
+    def fail_on_second_file(src, dst):
+        if Path(src).name == "track2.flac":
+            raise OSError("disk full")
+        return real_move(src, dst)
+
+    with patch("bandcampsync.sync.download_file", side_effect=_write_zip):
+        with patch("bandcampsync.sync.move_file", side_effect=fail_on_second_file):
+            assert syncer.sync_item(item) is False
+        assert syncer.sync_item(item) is True
+
+    assert (album_dir / "track1.flac").read_text() == "one"
+    assert (album_dir / "track2.flac").read_text() == "two"
+    assert (album_dir / "bandcamp_item_id.txt").read_text().strip() == "1"

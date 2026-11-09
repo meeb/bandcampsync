@@ -362,6 +362,8 @@ class Syncer:
                                         self._record_sync_error(
                                             f"Failed to move {file_path} to {file_dest}: {e}"
                                         )
+                                        # Incomplete, so don't mark it as downloaded
+                                        return False
                         elif (
                             item.item_type == "track"
                             or download_content_type.startswith("audio/")
@@ -393,6 +395,8 @@ class Syncer:
                                 self._record_sync_error(
                                     f"Failed to copy {temp_file_path} to {file_dest}: {e}"
                                 )
+                                # Incomplete, so don't mark it as downloaded
+                                return False
                         else:
                             self._record_sync_error(
                                 f'Downloaded file for "{item.band_name} / {item.item_title}" (id:{item.item_id}) '
