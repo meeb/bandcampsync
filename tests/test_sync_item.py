@@ -572,3 +572,72 @@ def test_single_track_without_url_hints_uses_title(syncer, mock_bandcamp, tmp_pa
         assert syncer.sync_item(item) is True
 
     assert mock_copy.call_args.args[1].name == "Album.flac"
+
+
+def test_download_is_closed_before_it_is_read_by_name(syncer, mock_bandcamp, tmp_path):
+    """Windows can't open a file by name while it's still open for writing."""
+    item = _download_item(mock_bandcamp)
+    targets = []
+
+    def download(url, target, **kwargs):
+        targets.append(target)
+        return _write_zip(url, target)
+
+    def check_closed(path):
+        assert targets[0].closed
+        assert Path(path) == Path(targets[0].name)
+        return True
+
+    with (
+        patch("bandcampsync.sync.download_file", side_effect=download),
+        patch("bandcampsync.sync.is_zip_file", side_effect=check_closed) as mock_is_zip,
+    ):
+        assert syncer.sync_item(item) is True
+
+    mock_is_zip.assert_called_once()
+    assert (tmp_path / "Artist" / "Album" / "track1.flac").exists()
+    leftovers = [
+        path.name for path in tmp_path.iterdir() if path.name.startswith("tmp")
+    ]
+    assert leftovers == []
+
+
+def test_error_checking_local_paths_skips_only_that_item(
+    syncer, mock_bandcamp, tmp_path
+):
+    failing = _download_item(mock_bandcamp)
+    failing.item_title = "Failing"
+    working = _download_item(mock_bandcamp)
+    working.item_id = 2
+    working.item_title = "Second Album"
+    mock_bandcamp.purchases = [failing, working]
+    real_check = syncer.local_media.is_locally_downloaded
+
+    def fail_on_first_item(item, local_path):
+        if item is failing:
+            raise OSError(36, "File name too long")
+        return real_check(item, local_path)
+
+    with (
+        patch("bandcampsync.sync.download_file", side_effect=_write_zip),
+        patch.object(
+            syncer.local_media, "is_locally_downloaded", side_effect=fail_on_first_item
+        ),
+    ):
+        asyncio.run(syncer.sync_items())
+
+    assert len(syncer.sync_errors) == 1
+    assert "File name too long" in syncer.sync_errors[0]
+    assert (tmp_path / "Artist" / "Second Album" / "track1.flac").exists()
+
+
+def test_failed_directory_is_not_downloaded_again(syncer, mock_bandcamp, tmp_path):
+    item = _download_item(mock_bandcamp)
+    (tmp_path / "Artist").write_text("a file where the directory needs to be")
+    with patch(
+        "bandcampsync.sync.download_file", side_effect=_write_zip
+    ) as mock_download:
+        assert syncer.sync_item(item) is False
+
+    assert mock_download.call_count == 1
+    assert len(syncer.sync_errors) == 1

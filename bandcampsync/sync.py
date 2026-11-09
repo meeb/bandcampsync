@@ -3,7 +3,7 @@ import json
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from tempfile import NamedTemporaryFile, TemporaryDirectory
+from tempfile import TemporaryDirectory
 from curl_cffi import CurlError
 from .options import BandcampSyncOptions
 from .logger import get_logger
@@ -18,6 +18,7 @@ from .download import (
     copy_file,
     mask_sig,
     is_zip_file,
+    temporary_download_path,
     DownloadInvalidContentType,
     DownloadBadStatusCode,
     DownloadCorrupt,
@@ -305,6 +306,18 @@ class Syncer:
         Returns:
             bool: indicating new media was downloaded
         """
+        try:
+            return self._sync_item(item, encoding)
+        except OSError as e:
+            # Not retried, this is a local problem such as a full disk or a name that
+            # can't be used on this filesystem, and only skips this item
+            self._record_sync_error(
+                f'Failed to save "{item.band_name} / {item.item_title}" '
+                f"(id:{item.item_id}): {e}. Skipping."
+            )
+            return False
+
+    def _sync_item(self, item, encoding) -> bool:
         media_format = encoding or self.media_format
 
         local_path = self.local_media.get_path_for_purchase(item)
@@ -371,26 +384,23 @@ class Syncer:
                         item, initial_download_url
                     )
 
-                    with NamedTemporaryFile(
-                        mode="w+b", delete=True, dir=self.temp_dir_root
-                    ) as temp_file:
+                    with temporary_download_path(self.temp_dir_root) as temp_file_path:
                         log.info(
                             f'Downloading item "{item.band_name} / {item.item_title}" (id:{item.item_id}) '
-                            f"from {mask_sig(download_file_url)} to {temp_file.name}"
+                            f"from {mask_sig(download_file_url)} to {temp_file_path}"
                         )
-                        download_content_type = download_file(
-                            download_file_url,
-                            temp_file,
-                            impersonate=self.bandcamp.browser_profile,
-                        )
-                        temp_file.seek(0)
-                        temp_file_path = Path(temp_file.name)
+                        with open(temp_file_path, "wb") as temp_file:
+                            download_content_type = download_file(
+                                download_file_url,
+                                temp_file,
+                                impersonate=self.bandcamp.browser_profile,
+                            )
                         if is_zip_file(temp_file_path):
                             with TemporaryDirectory(dir=self.temp_dir_root) as temp_dir:
                                 log.info(
-                                    f'Decompressing downloaded zip "{temp_file.name}" to "{temp_dir}"'
+                                    f'Decompressing downloaded zip "{temp_file_path}" to "{temp_dir}"'
                                 )
-                                unzip_file(temp_file.name, temp_dir)
+                                unzip_file(temp_file_path, temp_dir)
                                 temp_path = Path(temp_dir)
                                 try:
                                     local_path.mkdir(parents=True, exist_ok=True)
@@ -398,7 +408,7 @@ class Syncer:
                                     self._record_sync_error(
                                         f"Failed to create directory: {local_path} ({e}), skipping file extraction"
                                     )
-                                    continue
+                                    return False
                                 for file_path in temp_path.iterdir():
                                     file_dest = self.local_media.get_path_for_file(
                                         local_path, file_path.name
@@ -433,7 +443,7 @@ class Syncer:
                                 self._record_sync_error(
                                     f"Failed to create directory: {local_path} ({e}), skipping file write"
                                 )
-                                continue
+                                return False
                             file_dest = self.local_media.get_path_for_file(
                                 local_path, f"{slug}.{format_extension}"
                             )
@@ -502,13 +512,6 @@ class Syncer:
                     self._record_sync_error(
                         f'Download expired and requires email confirmation on Bandcamp for "{item.band_name} / {item.item_title}" '
                         f"(id:{item.item_id}), skipping"
-                    )
-                    return False
-                except OSError as e:
-                    # Not retried, this is a local problem such as a full disk
-                    self._record_sync_error(
-                        f'Failed to save "{item.band_name} / {item.item_title}" '
-                        f"(id:{item.item_id}): {e}. Skipping."
                     )
                     return False
         return False

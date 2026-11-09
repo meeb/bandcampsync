@@ -3,9 +3,19 @@ from tempfile import NamedTemporaryFile
 from unicodedata import normalize
 from bandcampsync.bandcamp import BandcampItem
 from .logger import get_logger
+from .names import fit_name
 
 
 log = get_logger("media")
+# Device names which can't be used for a file or directory on Windows, with any extension
+WINDOWS_RESERVED_NAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    *(f"COM{number}" for number in range(1, 10)),
+    *(f"LPT{number}" for number in range(1, 10)),
+}
 
 
 class LocalMedia:
@@ -42,7 +52,7 @@ class LocalMedia:
             self.index()
 
     @staticmethod
-    def _clean_path(path_str):
+    def _clean_path(path_str, windows=os.name == "nt"):
         path_str = str(path_str)
         disallowed_punctuation = "\"#%'*/?\\`:"
         normalized_path = normalize("NFKD", path_str)
@@ -50,6 +60,13 @@ class LocalMedia:
         for c in normalized_path:
             if c not in disallowed_punctuation:
                 outstr += c
+        if windows:
+            # None of these can exist on Windows, and it ignores trailing dots and spaces,
+            # so removing them doesn't change the name of anything already downloaded
+            outstr = "".join(c for c in outstr if c not in "<>|" and ord(c) >= 32)
+            outstr = outstr.rstrip(" .")
+            if outstr.split(".")[0].strip().upper() in WINDOWS_RESERVED_NAMES:
+                outstr = f"_{outstr}"
         # Would otherwise resolve to the current or parent directory
         if outstr.strip() in ("", ".", ".."):
             return "_"
@@ -155,12 +172,17 @@ class LocalMedia:
     def get_path_for_purchase(self, item):
         return (
             self.media_dir
-            / self._clean_path(item.band_name)
-            / self._clean_path(f"{item.item_title}{item.folder_suffix}")
+            / fit_name(self.media_dir, self._clean_path(item.band_name))
+            / fit_name(
+                self.media_dir,
+                self._clean_path(f"{item.item_title}{item.folder_suffix}"),
+            )
         )
 
     def get_path_for_file(self, local_path, file_name):
-        return local_path / self._clean_path(file_name)
+        return local_path / fit_name(
+            self.media_dir, self._clean_path(file_name), keep_extension=True
+        )
 
     def write_bandcamp_id(self, item, dirpath):
         try:

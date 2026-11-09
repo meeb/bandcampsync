@@ -14,6 +14,7 @@ from bandcampsync.download import (
     _read_html_body,
     is_zip_file,
     mask_sig,
+    temporary_download_path,
     unzip_file,
 )
 
@@ -119,3 +120,52 @@ def test_failed_read_masks_url_in_log(caplog, attribute):
 
     assert "HTML body for" in caplog.text
     assert "secret" not in caplog.text
+
+
+def test_unzip_shortens_names_the_filesystem_cannot_use(tmp_path):
+    path = tmp_path / "download.zip"
+    long_name = "\u28ce" * 100
+    with ZipFile(path, "w") as archive:
+        archive.writestr(f"{long_name}.flac", "audio")
+        archive.writestr(f"{long_name}/track.flac", "nested")
+        archive.writestr("cover.jpg", "art")
+
+    assert unzip_file(path, tmp_path / "out") is True
+
+    extracted = {
+        file.relative_to(tmp_path / "out").as_posix(): file.read_text()
+        for file in (tmp_path / "out").rglob("*")
+        if file.is_file()
+    }
+    assert extracted["cover.jpg"] == "art"
+    assert sorted(extracted.values()) == ["art", "audio", "nested"]
+    assert any(name.endswith(".flac") and name.count("/") == 0 for name in extracted)
+    assert any(name.endswith("/track.flac") for name in extracted)
+
+
+def test_unzip_does_not_write_outside_the_target_directory(tmp_path):
+    path = tmp_path / "download.zip"
+    with ZipFile(path, "w") as archive:
+        archive.writestr("../outside.flac", "bad")
+
+    unzip_file(path, tmp_path / "out")
+
+    assert not (tmp_path / "outside.flac").exists()
+    assert (tmp_path / "out" / "outside.flac").read_text() == "bad"
+
+
+def test_temporary_download_path_is_closed_and_removed(tmp_path):
+    with temporary_download_path(tmp_path) as path:
+        # Opening it again by name is what fails on Windows if it's still open
+        path.write_bytes(b"data")
+        assert path.read_bytes() == b"data"
+
+    assert not path.exists()
+
+
+def test_temporary_download_path_is_removed_after_an_error(tmp_path):
+    with pytest.raises(ValueError):
+        with temporary_download_path(tmp_path) as path:
+            raise ValueError("failed")
+
+    assert not path.exists()

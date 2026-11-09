@@ -33,6 +33,7 @@ def _start_service(tmp_path):
     )
 
 
+@pytest.mark.skipif(os.name == "nt", reason="Windows has no equivalent signals to send")
 @pytest.mark.parametrize("stop_signal", [signal.SIGTERM, signal.SIGINT])
 def test_signal_stops_sleeping_service(tmp_path, stop_signal):
     process = _start_service(tmp_path)

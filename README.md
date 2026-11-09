@@ -51,7 +51,8 @@ The media directory will have the following format:
 
 The directory format of `artist_name`/`item_title` is not editable. If you have
 multiple purchases with the same artist and title they are kept separate by adding the
-item ID to the directory name, for example `Album Name [123456]`.
+item ID to the directory name, for example `Album Name [123456]`. Names your filesystem
+can't use, such as those over its length limit, are shortened and have a short hash added.
 
 `bandcamp_item_id.txt` is a special file created in each item directory and
 it contains the Bandcamp item ID as an integer. This file is used by BandcampSync

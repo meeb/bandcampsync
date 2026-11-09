@@ -1,11 +1,16 @@
 import math
+import os
 import re
 import shutil
 import zlib
+from contextlib import contextmanager
+from pathlib import Path
+from tempfile import mkstemp
 from zipfile import BadZipFile, ZipFile
 from bs4 import BeautifulSoup
 from curl_cffi import requests
 from .logger import get_logger
+from .names import fit_name
 
 
 log = get_logger("download")
@@ -133,6 +138,20 @@ def download_file(
     return major_content_type
 
 
+@contextmanager
+def temporary_download_path(directory=None):
+    """
+    Provides a path for a temporary file, removed afterwards. The file is opened and closed
+    by the caller as Windows can't open a file by name while it's already open.
+    """
+    file_descriptor, file_path = mkstemp(dir=directory)
+    os.close(file_descriptor)
+    try:
+        yield Path(file_path)
+    finally:
+        Path(file_path).unlink(missing_ok=True)
+
+
 def is_zip_file(file_path):
     try:
         with ZipFile(file_path) as z:
@@ -143,9 +162,16 @@ def is_zip_file(file_path):
 
 
 def unzip_file(decompress_from, decompress_to):
+    os.makedirs(decompress_to, exist_ok=True)
     try:
         with ZipFile(decompress_from) as z:
-            z.extractall(decompress_to)
+            for info in z.infolist():
+                # Only the name to extract to is changed, this doesn't affect reading it
+                info.filename = "/".join(
+                    fit_name(decompress_to, part, keep_extension=True)
+                    for part in info.filename.split("/")
+                )
+                z.extract(info, decompress_to)
     except (BadZipFile, EOFError, zlib.error) as e:
         raise DownloadCorrupt(f"Failed to decompress download: {e}") from e
     return True

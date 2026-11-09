@@ -69,3 +69,13 @@ def test_missing_file_is_created_from_docker_template(tmp_path, monkeypatch):
     Ignores(ign_file_path=ignore_file, ign_patterns="")
 
     assert ignore_file.read_text() == "# Template\n"
+
+
+def test_names_are_read_as_utf8(tmp_path):
+    ignore_file = tmp_path / "ignores.txt"
+    ignore_file.write_bytes("1  # Band / \u28ce\u0338 Album\n".encode("utf-8"))
+
+    ignores = Ignores(ign_file_path=ignore_file, ign_patterns="")
+
+    assert ignores.ids == {1}
+    assert ignores.is_name_used_by_other_item("Band / \u28ce\u0338 Album", 2) is True

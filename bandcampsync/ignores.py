@@ -53,7 +53,7 @@ class Ignores:
                 # The template is only available in the Docker image
                 open(self.ign_file_path, "w").close()
 
-        with open(self.ign_file_path, "rt") as f:
+        with open(self.ign_file_path, "rt", encoding="utf-8") as f:
             try:
                 self.ign_lines = f.readlines()
             except Exception as e:

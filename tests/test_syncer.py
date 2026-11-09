@@ -528,3 +528,27 @@ def test_same_name_without_checkpoint_keeps_existing_skip(tmp_path):
 
     assert _run_collection_sync(tmp_path, [_same_name_item(2, "new")], [2]) == []
     assert not (tmp_path / "Band" / "Same Title [2]").exists()
+
+
+def test_item_with_name_too_long_for_filesystem_is_downloaded_once(tmp_path):
+    (tmp_path / "Band").mkdir()
+    long_item = _collection_item(1, "long")
+    long_item["item_title"] = "\u28ce" * 100
+    normal_item = _collection_item(2, "normal")
+
+    downloaded = _run_collection_sync(
+        tmp_path, [dict(long_item), dict(normal_item)], [1, 2]
+    )
+
+    assert downloaded == [1, 2]
+    folders = sorted(path.name for path in (tmp_path / "Band").iterdir())
+    assert len(folders) == 2
+    assert all(
+        (tmp_path / "Band" / name / "bandcamp_item_id.txt").exists() for name in folders
+    )
+    # A full scan finds it again by its shortened folder name
+    (tmp_path / Syncer.STATE_FILENAME).unlink()
+    assert (
+        _run_collection_sync(tmp_path, [dict(long_item), dict(normal_item)], [1, 2])
+        == []
+    )
