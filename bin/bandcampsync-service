@@ -152,7 +152,12 @@ if __name__ == "__main__":
     try:
         while not catch_shutdown.shutdown:
             log.info("Starting synchronisation")
-            do_sync(options)
+            try:
+                do_sync(options)
+            except Exception:
+                log.exception("Synchronisation failed")
+                if exit_after_run:
+                    raise
             random_delay = randrange(0, 3600)
             time_now = datetime.now(tz).replace(microsecond=0)
             time_tomorrow = time_now + timedelta(days=1)
