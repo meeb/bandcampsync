@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+from threading import Lock
 from .logger import get_logger
 
 
@@ -27,6 +28,8 @@ class Ignores:
         self.ign_lines = []
         # The line number at which to insert the next downloaded item id
         self.ign_insert_index = -1
+        # Items can be added from multiple threads when syncing concurrently
+        self.ign_lock = Lock()
         self.ids = set()
         self.parse_ignores()
 
@@ -91,32 +94,35 @@ class Ignores:
         if not self.ign_file_path:
             return
 
-        # We recreate the content of the file from the initial read.
-        # Note that any manual change made to the "ignores" file while the process is running
-        # will be lost because we only read the content at startup time.
-        self.ign_lines = (
-            self.ign_lines[: self.ign_insert_index]
-            +
-            # The human-readable comment is ignored by the script
-            # but can be useful to identify something that needs a redownload
-            [f"{item.item_id}  # {item.band_name} / {item.item_title}\n"]
-            + self.ign_lines[self.ign_insert_index :]
-        )
-        # The list of ids is in reverse chronological order, like the collection is.
-        # The newest items are downloaded in reverse chronological order, so we add
-        # them at the top, one after the other, within the session.
-        self.ign_insert_index += 1
+        with self.ign_lock:
+            # We recreate the content of the file from the initial read.
+            # Note that any manual change made to the "ignores" file while the process is running
+            # will be lost because we only read the content at startup time.
+            self.ign_lines = (
+                self.ign_lines[: self.ign_insert_index]
+                +
+                # The human-readable comment is ignored by the script
+                # but can be useful to identify something that needs a redownload
+                [f"{item.item_id}  # {item.band_name} / {item.item_title}\n"]
+                + self.ign_lines[self.ign_insert_index :]
+            )
+            # The list of ids is in reverse chronological order, like the collection is.
+            # The newest items are downloaded in reverse chronological order, so we add
+            # them at the top, one after the other, within the session.
+            self.ign_insert_index += 1
 
-        # Write to a tmp file then move it, to ensure it's atomic.
-        tmp_ignores_file = "%s.tmp" % self.ign_file_path
-        try:
-            with open(tmp_ignores_file, "w", encoding="utf-8") as f:
-                f.writelines(self.ign_lines)
-            os.replace(tmp_ignores_file, self.ign_file_path)
-        except Exception as e:
-            log.error(f"Error while adding {item.item_id} to the ignores.txt file: {e}")
-            if os.path.exists(tmp_ignores_file):
-                os.remove(tmp_ignores_file)
+            # Write to a tmp file then move it, to ensure it's atomic.
+            tmp_ignores_file = "%s.tmp" % self.ign_file_path
+            try:
+                with open(tmp_ignores_file, "w", encoding="utf-8") as f:
+                    f.writelines(self.ign_lines)
+                os.replace(tmp_ignores_file, self.ign_file_path)
+            except Exception as e:
+                log.error(
+                    f"Error while adding {item.item_id} to the ignores.txt file: {e}"
+                )
+                if os.path.exists(tmp_ignores_file):
+                    os.remove(tmp_ignores_file)
 
     def is_ignored(self, item):
         # Check if the id is ignored
