@@ -4,7 +4,7 @@ image=$(name):latest
 
 
 container:
-	$(docker) build -t $(image) .
+	$(docker) build --build-arg VERSION=$$(git describe --tags --abbrev=0) -t $(image) .
 
 
 runcontainer:
