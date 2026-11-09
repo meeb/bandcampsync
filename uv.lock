@@ -26,7 +26,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.14.3" },
-    { name = "curl-cffi", specifier = ">=0.14.0" },
+    { name = "curl-cffi", specifier = ">=0.17.0" },
 ]
 
 [package.metadata.requires-dev]

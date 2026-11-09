@@ -11,7 +11,7 @@ license = "BSD-3-Clause"
 license-files = ["LICENSE",]
 dependencies = [
     "beautifulsoup4>=4.14.3",
-    "curl-cffi>=0.14.0",
+    "curl-cffi>=0.17.0",
 ]
 keywords = [
   "bandcampsync",
