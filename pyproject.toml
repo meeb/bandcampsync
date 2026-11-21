@@ -10,7 +10,7 @@ requires-python = ">=3.11"
 license = "BSD-3-Clause"
 license-files = ["LICENSE",]
 dependencies = [
-    "beautifulsoup4>=4.14.3",
+    "beautifulsoup4>=4.15.0",
     "curl-cffi>=0.17.0",
     "tzdata; sys_platform == 'win32'",
 ]
@@ -38,9 +38,9 @@ Issues = "https://github.com/meeb/bandcampsync/issues"
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.2",
-    "pytest-mock>=3.15.1",
-    "ruff>=0.14.3",
+    "pytest>=9.2.0",
+    "pytest-mock>=3.17.0",
+    "ruff>=0.17.6",
 ]
 
 [build-system]
