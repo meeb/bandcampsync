@@ -8,7 +8,15 @@ ENV DEBIAN_FRONTEND="noninteractive" \
   LANGUAGE="en_US.UTF-8" \
   LANG="en_US.UTF-8" \
   LC_ALL="en_US.UTF-8" \
-  TERM="xterm"
+  TERM="xterm" \
+  UV_COMPILE_BYTECODE=1 \
+  UV_LINK_MODE=copy \
+  UV_NO_CACHE=1 \
+  UV_PYTHON_DOWNLOADS=never \
+  UV_PROJECT_ENVIRONMENT="/opt/bandcampsync" \
+  PATH="/opt/bandcampsync/bin:${PATH}"
+
+COPY --from=ghcr.io/astral-sh/uv:0.13.9@sha256:d3b601f0c7b118bc1753febf7c41cc80981df678445e0254284eecf84db79a7d /uv /usr/local/bin/uv
 
 # Set up the container
 RUN set -x && \
@@ -22,8 +30,7 @@ RUN set -x && \
     git \
     gosu \
     python3 \
-    python3-dev \
-    python3-pip && \
+    python3-dev && \
   # Create a 'app' user which the service will run as
   groupadd app && \
   useradd -M -d /app -s /bin/false -g app app && \
@@ -38,7 +45,10 @@ RUN set -x && \
   # Allow root to use sudo
   echo "root  ALL = NOPASSWD: /bin/su ALL" >> /etc/sudoers && \
   # Install BandcampSync
-  python3 -m pip install --break-system-packages git+https://github.com/${REPOSITORY}.git@${VERSION}#egg=bandcampsync
+  git clone https://github.com/${REPOSITORY}.git /tmp/bandcampsync && \
+  git -C /tmp/bandcampsync checkout "${VERSION}" && \
+  uv sync --project /tmp/bandcampsync --locked --no-dev --no-editable --python /usr/bin/python3 && \
+  rm -rf /tmp/bandcampsync
 
 # Volumes
 VOLUME ["/config", "/downloads"]
