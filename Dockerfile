@@ -29,6 +29,7 @@ RUN set -x && \
   apt-get -y --no-install-recommends install \
     git \
     gosu \
+    ca-certificates \
     python3 \
     python3-dev && \
   # Create a 'app' user which the service will run as
@@ -44,6 +45,8 @@ RUN set -x && \
 RUN set -x && \
   # Allow root to use sudo
   echo "root  ALL = NOPASSWD: /bin/su ALL" >> /etc/sudoers && \
+  # Squash git banners
+  git config --global advice.detachedHead false && \
   # Install BandcampSync
   git clone https://github.com/${REPOSITORY}.git /tmp/bandcampsync && \
   git -C /tmp/bandcampsync checkout "${VERSION}" && \
